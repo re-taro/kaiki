@@ -59,6 +59,12 @@ wasm-build-web:
 wasm-test:
   wasm-pack test --node wasm/kaiki_diff_wasm
 
+napi-test:
+  cd napi/kaiki && pnpm run build:debug && pnpm test
+
+napi-bench:
+  cd napi/kaiki && pnpm run build:debug && pnpm run bench
+
 [unix]
 doc:
   RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --document-private-items
