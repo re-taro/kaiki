@@ -1,0 +1,27 @@
+[package]
+name = "kaiki_diff"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Pixelmatch-compatible image comparison engine for visual regression testing"
+
+[lints]
+workspace = true
+
+[dependencies]
+image = { workspace = true }
+xxhash-rust = { workspace = true }
+thiserror = { workspace = true }
+bumpalo = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "pixelmatch_bench"
+harness = false
