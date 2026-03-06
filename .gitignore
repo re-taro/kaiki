@@ -1,2 +1,3 @@
 /target
 crates/kaiki_diff/fixtures/
+wasm/kaiki_diff_wasm/pkg/
