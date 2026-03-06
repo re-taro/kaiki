@@ -1,0 +1,10 @@
+{
+  "name": "@kaiki/diff-wasm",
+  "version": "0.0.1",
+  "description": "WebAssembly bindings for kaiki image diff engine",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/re-taro/kaiki"
+  }
+}

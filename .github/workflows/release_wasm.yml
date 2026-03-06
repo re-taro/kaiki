@@ -1,0 +1,87 @@
+name: Release wasm
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - wasm/kaiki_diff_wasm/package.json
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release_wasm
+  cancel-in-progress: false
+
+jobs:
+  check-version:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.current }}
+      changed: ${{ steps.version.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Detect version change
+        id: version
+        run: |
+          CURRENT=$(jq -r .version wasm/kaiki_diff_wasm/package.json)
+          PREVIOUS=$(git show HEAD~1:wasm/kaiki_diff_wasm/package.json 2>/dev/null | jq -r .version 2>/dev/null || echo "")
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT" != "$PREVIOUS" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Version changed: $PREVIOUS -> $CURRENT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged: $CURRENT"
+          fi
+
+  publish-wasm:
+    name: Build and Publish wasm
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - uses: dtolnay/rust-toolchain@1.93.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Build wasm
+        run: wasm-pack build wasm/kaiki_diff_wasm --target web --scope kaiki
+
+      - name: Patch package.json
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          cd wasm/kaiki_diff_wasm/pkg
+          node -e "
+            const pkg = require('./package.json');
+            pkg.name = '@kaiki/diff-wasm';
+            pkg.version = '${VERSION}';
+            pkg.license = 'MIT';
+            pkg.repository = { type: 'git', url: 'https://github.com/re-taro/kaiki' };
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Publish
+        working-directory: wasm/kaiki_diff_wasm/pkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: wasm-v${{ needs.check-version.outputs.version }}
+          name: wasm v${{ needs.check-version.outputs.version }}
+          generate_release_notes: true

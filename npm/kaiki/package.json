@@ -1,0 +1,30 @@
+{
+  "name": "@kaiki/cli",
+  "version": "0.0.1",
+  "description": "Visual regression testing CLI (Rust-powered, reg-suit compatible)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/re-taro/kaiki"
+  },
+  "bin": {
+    "kaiki": "bin/kaiki"
+  },
+  "files": [
+    "bin",
+    "scripts"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "optionalDependencies": {
+    "@kaiki/cli-darwin-arm64": "0.0.1",
+    "@kaiki/cli-darwin-x64": "0.0.1",
+    "@kaiki/cli-linux-x64-gnu": "0.0.1",
+    "@kaiki/cli-linux-x64-musl": "0.0.1",
+    "@kaiki/cli-linux-arm64-gnu": "0.0.1",
+    "@kaiki/cli-linux-arm64-musl": "0.0.1",
+    "@kaiki/cli-win32-x64-msvc": "0.0.1",
+    "@kaiki/cli-win32-arm64-msvc": "0.0.1"
+  }
+}

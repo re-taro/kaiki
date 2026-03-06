@@ -1,0 +1,26 @@
+[package]
+name = "kaiki_diff_wasm"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "WebAssembly bindings for kaiki image diff engine"
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+kaiki_diff = { workspace = true }
+wasm-bindgen = { workspace = true }
+serde = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+
+[dev-dependencies]
+wasm-bindgen-test = { workspace = true }
+js-sys = "0.3"

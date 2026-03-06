@@ -1,0 +1,92 @@
+#!/usr/bin/env node
+
+const { spawnSync } = require("child_process");
+const path = require("path");
+
+function getPlatformPackage() {
+  const platform = process.platform;
+  const arch = process.arch;
+
+  let packageName;
+
+  switch (platform) {
+    case "darwin":
+      switch (arch) {
+        case "arm64":
+          packageName = "@kaiki/cli-darwin-arm64";
+          break;
+        case "x64":
+          packageName = "@kaiki/cli-darwin-x64";
+          break;
+        default:
+          throw new Error(`Unsupported architecture on macOS: ${arch}`);
+      }
+      break;
+    case "linux":
+      switch (arch) {
+        case "x64": {
+          const isMusl = !process.report.getReport().header.glibcVersionRuntime;
+          packageName = isMusl
+            ? "@kaiki/cli-linux-x64-musl"
+            : "@kaiki/cli-linux-x64-gnu";
+          break;
+        }
+        case "arm64": {
+          const isMusl = !process.report.getReport().header.glibcVersionRuntime;
+          packageName = isMusl
+            ? "@kaiki/cli-linux-arm64-musl"
+            : "@kaiki/cli-linux-arm64-gnu";
+          break;
+        }
+        default:
+          throw new Error(`Unsupported architecture on Linux: ${arch}`);
+      }
+      break;
+    case "win32":
+      switch (arch) {
+        case "x64":
+          packageName = "@kaiki/cli-win32-x64-msvc";
+          break;
+        case "arm64":
+          packageName = "@kaiki/cli-win32-arm64-msvc";
+          break;
+        default:
+          throw new Error(`Unsupported architecture on Windows: ${arch}`);
+      }
+      break;
+    default:
+      throw new Error(
+        `Unsupported platform: ${platform} (${arch}). Please open an issue at https://github.com/re-taro/kaiki/issues`,
+      );
+  }
+
+  return packageName;
+}
+
+function main() {
+  const packageName = getPlatformPackage();
+  const binaryName = process.platform === "win32" ? "kaiki.exe" : "kaiki";
+
+  let binaryPath;
+  try {
+    binaryPath = require.resolve(path.join(packageName, binaryName));
+  } catch {
+    throw new Error(
+      `Could not find the binary for ${packageName}. Please make sure it is installed.\n` +
+        `Try running: npm install ${packageName}`,
+    );
+  }
+
+  const result = spawnSync(binaryPath, process.argv.slice(2), {
+    stdio: "inherit",
+    env: process.env,
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  process.exit(result.status ?? 1);
+}
+
+main();

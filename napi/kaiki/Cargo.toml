@@ -1,0 +1,21 @@
+[package]
+name = "kaiki_napi"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Node.js bindings for kaiki visual regression testing"
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+kaiki_core = { workspace = true }
+napi = { workspace = true }
+napi-derive = { workspace = true }

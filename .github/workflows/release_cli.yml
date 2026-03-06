@@ -1,0 +1,221 @@
+name: Release CLI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - npm/kaiki/package.json
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release_cli
+  cancel-in-progress: false
+
+jobs:
+  check-version:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.current }}
+      changed: ${{ steps.version.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Detect version change
+        id: version
+        run: |
+          CURRENT=$(jq -r .version npm/kaiki/package.json)
+          PREVIOUS=$(git show HEAD~1:npm/kaiki/package.json 2>/dev/null | jq -r .version 2>/dev/null || echo "")
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT" != "$PREVIOUS" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Version changed: $PREVIOUS -> $CURRENT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged: $CURRENT"
+          fi
+
+  build-cli:
+    name: Build CLI (${{ matrix.target }})
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            npm-package: "@kaiki/cli-darwin-arm64"
+            npm-os: darwin
+            npm-cpu: arm64
+            cross: false
+          - target: x86_64-apple-darwin
+            os: macos-13
+            npm-package: "@kaiki/cli-darwin-x64"
+            npm-os: darwin
+            npm-cpu: x64
+            cross: false
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            npm-package: "@kaiki/cli-linux-x64-gnu"
+            npm-os: linux
+            npm-cpu: x64
+            npm-libc: glibc
+            cross: false
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            npm-package: "@kaiki/cli-linux-arm64-gnu"
+            npm-os: linux
+            npm-cpu: arm64
+            npm-libc: glibc
+            cross: true
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            npm-package: "@kaiki/cli-linux-x64-musl"
+            npm-os: linux
+            npm-cpu: x64
+            npm-libc: musl
+            cross: true
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            npm-package: "@kaiki/cli-linux-arm64-musl"
+            npm-os: linux
+            npm-cpu: arm64
+            npm-libc: musl
+            cross: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            npm-package: "@kaiki/cli-win32-x64-msvc"
+            npm-os: win32
+            npm-cpu: x64
+            cross: false
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            npm-package: "@kaiki/cli-win32-arm64-msvc"
+            npm-os: win32
+            npm-cpu: arm64
+            cross: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.93.1
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --locked
+
+      - name: Build
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }} -p kaiki_cli
+          else
+            cargo build --release --target ${{ matrix.target }} -p kaiki_cli
+          fi
+        shell: bash
+
+      - name: Generate platform package
+        shell: node {0}
+        run: |
+          const fs = require("fs");
+          const path = require("path");
+
+          const version = "${{ needs.check-version.outputs.version }}";
+          const npmPackage = "${{ matrix.npm-package }}";
+          const npmOs = "${{ matrix.npm-os }}";
+          const npmCpu = "${{ matrix.npm-cpu }}";
+          const npmLibc = "${{ matrix.npm-libc }}";
+          const target = "${{ matrix.target }}";
+
+          const dir = path.join("staging", npmPackage.replace("/", "-").replace("@", ""));
+          fs.mkdirSync(dir, { recursive: true });
+
+          const binaryName = npmOs === "win32" ? "kaiki.exe" : "kaiki";
+          const binarySource = path.join("target", target, "release", binaryName);
+          fs.copyFileSync(binarySource, path.join(dir, binaryName));
+
+          const pkg = {
+            name: npmPackage,
+            version,
+            description: `kaiki CLI binary for ${target}`,
+            license: "MIT",
+            repository: { type: "git", url: "https://github.com/re-taro/kaiki" },
+            os: [npmOs],
+            cpu: [npmCpu],
+            files: [binaryName],
+          };
+
+          if (npmLibc) {
+            pkg.libc = [npmLibc];
+          }
+
+          fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify(pkg, null, 2) + "\n");
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: staging/
+          if-no-files-found: error
+
+  publish-cli:
+    name: Publish CLI
+    needs: [check-version, build-cli]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: cli-*
+          merge-multiple: true
+
+      - name: Publish platform packages
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for dir in artifacts/*/; do
+            if [ -f "$dir/package.json" ]; then
+              echo "Publishing $(jq -r .name "$dir/package.json")..."
+              npm publish "$dir" --provenance --access public
+            fi
+          done
+
+      - name: Update and publish main package
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          cd npm/kaiki
+
+          # Update optionalDependencies versions
+          node -e "
+            const pkg = require('./package.json');
+            pkg.version = '${VERSION}';
+            for (const dep of Object.keys(pkg.optionalDependencies || {})) {
+              pkg.optionalDependencies[dep] = '${VERSION}';
+            }
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: cli-v${{ needs.check-version.outputs.version }}
+          name: CLI v${{ needs.check-version.outputs.version }}
+          generate_release_notes: true

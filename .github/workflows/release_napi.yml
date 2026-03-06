@@ -1,0 +1,178 @@
+name: Release napi
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - napi/kaiki/package.json
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release_napi
+  cancel-in-progress: false
+
+jobs:
+  check-version:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.current }}
+      changed: ${{ steps.version.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Detect version change
+        id: version
+        run: |
+          CURRENT=$(jq -r .version napi/kaiki/package.json)
+          PREVIOUS=$(git show HEAD~1:napi/kaiki/package.json 2>/dev/null | jq -r .version 2>/dev/null || echo "")
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT" != "$PREVIOUS" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Version changed: $PREVIOUS -> $CURRENT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged: $CURRENT"
+          fi
+
+  build-napi:
+    name: Build napi (${{ matrix.target }})
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-13
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@1.93.1
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cross-compilation tools (aarch64-linux-gnu)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Install cross-compilation tools (x86_64-linux-musl)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Install cross-compilation tools (aarch64-linux-musl)
+        if: matrix.target == 'aarch64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          # Download musl cross compiler
+          curl -fsSL https://musl.cc/aarch64-linux-musl-cross.tgz | tar xz -C /tmp
+          echo "/tmp/aarch64-linux-musl-cross/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        working-directory: napi/kaiki
+        run: npm install
+
+      - name: Build napi
+        working-directory: napi/kaiki
+        shell: bash
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
+        run: npx napi build --platform --release --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: napi-${{ matrix.target }}
+          path: napi/kaiki/*.node
+          if-no-files-found: error
+
+  publish-napi:
+    name: Publish napi
+    needs: [check-version, build-napi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        working-directory: napi/kaiki
+        run: npm install
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: napi/kaiki/artifacts
+          pattern: napi-*
+          merge-multiple: true
+
+      - name: Move artifacts
+        working-directory: napi/kaiki
+        run: npx napi artifacts
+
+      - name: Prepublish
+        working-directory: napi/kaiki
+        run: npx napi prepublish -t npm
+
+      - name: Publish platform packages
+        working-directory: napi/kaiki
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for dir in npm/*/; do
+            if [ -f "$dir/package.json" ]; then
+              echo "Publishing $(jq -r .name "$dir/package.json")..."
+              npm publish "$dir" --provenance --access public
+            fi
+          done
+
+      - name: Update and publish main package
+        working-directory: napi/kaiki
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          node -e "
+            const pkg = require('./package.json');
+            pkg.version = '${VERSION}';
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: napi-v${{ needs.check-version.outputs.version }}
+          name: napi v${{ needs.check-version.outputs.version }}
+          generate_release_notes: true
