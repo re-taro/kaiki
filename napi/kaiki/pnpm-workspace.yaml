@@ -1,0 +1,10 @@
+# pnpm v10 supply chain security settings
+# https://pnpm.io/ja/supply-chain-security
+
+# 信頼できるパッケージのみ lifecycle scripts (postinstall 等) を許可
+onlyBuiltDependencies:
+  - "@napi-rs/cli"
+  - esbuild
+
+# 非標準ソース (git URL, tarball) からの間接依存を禁止
+blockExoticSubdeps: true

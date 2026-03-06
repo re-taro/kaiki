@@ -1,9 +1,21 @@
 {
   "name": "@kaiki/diff",
   "version": "0.0.1",
-  "description": "Node.js bindings for kaiki image diff (pixelmatch-compatible)",
+  "description": "Node.js bindings for kaiki visual regression testing",
   "main": "index.js",
   "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.js",
+      "types": "./index.d.ts"
+    },
+    "./plugin-loader": {
+      "import": "./plugin-loader.js",
+      "require": "./plugin-loader.js",
+      "types": "./plugin-loader.d.ts"
+    }
+  },
   "napi": {
     "name": "kaiki-diff",
     "triples": {
@@ -24,15 +36,24 @@
   },
   "files": [
     "index.js",
-    "index.d.ts"
+    "index.d.ts",
+    "plugin-loader.js",
+    "plugin-loader.d.ts"
   ],
   "devDependencies": {
-    "@napi-rs/cli": "^2"
+    "@napi-rs/cli": "^2",
+    "@types/node": "^22",
+    "pngjs": "7.0.0",
+    "typescript": "^5",
+    "vitest": "4.0.18"
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "napi build --platform --release",
-    "build:debug": "napi build --platform",
-    "prepublishOnly": "napi prepublish -t npm"
+    "build": "napi build --platform --release && tsc plugin-loader.ts --declaration --esModuleInterop --module commonjs --target es2020 --moduleResolution node --skipLibCheck",
+    "build:debug": "napi build --platform && tsc plugin-loader.ts --declaration --esModuleInterop --module commonjs --target es2020 --moduleResolution node --skipLibCheck",
+    "prepublishOnly": "napi prepublish -t npm",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "vitest bench"
   }
 }
