@@ -2,11 +2,11 @@
 name = "kaiki_napi"
 version.workspace = true
 authors.workspace = true
+categories.workspace = true
 edition.workspace = true
+keywords.workspace = true
 license.workspace = true
 repository.workspace = true
-keywords.workspace = true
-categories.workspace = true
 description = "Node.js bindings for kaiki visual regression testing"
 
 [lints]
@@ -16,18 +16,17 @@ workspace = true
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-kaiki_core = { workspace = true }
-kaiki_git = { workspace = true }
-kaiki_storage = { workspace = true }
-kaiki_notify = { workspace = true }
-kaiki_config = { workspace = true }
-kaiki_report = { workspace = true }
-napi = { version = "2", features = ["async", "serde-json", "napi4"] }
-napi-derive = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
 compact_str = { workspace = true }
 futures = { workspace = true }
+kaiki_config = { workspace = true }
+kaiki_core = { workspace = true }
+kaiki_git = { workspace = true }
+kaiki_notify = { workspace = true }
+kaiki_report = { workspace = true }
+kaiki_storage = { workspace = true }
+napi = { version = "2", features = ["async", "serde-json", "napi4"] }
+napi-derive = { workspace = true }
+serde_json = { workspace = true }
 
 [build-dependencies]
 napi-build = "2"

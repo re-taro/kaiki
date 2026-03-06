@@ -1,6 +1,6 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { run as nativeRun } from "./index.js";
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { run as nativeRun } from './index.js';
 
 /**
  * A reg-suit plugin factory function. When called, it returns a holder object
@@ -51,26 +51,26 @@ interface RegConfig {
  * @param configPath - Path to regconfig.json (default: 'regconfig.json')
  * @returns The pipeline result from the native runner
  */
-export async function run(configPath = "regconfig.json") {
+export async function run(configPath = 'regconfig.json') {
   const resolvedPath = path.resolve(configPath);
-  const raw = fs.readFileSync(resolvedPath, "utf-8");
+  const raw = fs.readFileSync(resolvedPath, 'utf-8');
   const config: RegConfig = JSON.parse(raw);
 
   let keyGenerator:
     | {
-        getExpectedKey: () => Promise<string | null>;
-        getActualKey: () => Promise<string>;
-      }
+      getExpectedKey: () => Promise<string | null>;
+      getActualKey: () => Promise<string>;
+    }
     | undefined;
 
   let publisher:
     | {
-        fetch: (args: { key: string; destDir: string }) => Promise<void>;
-        publish: (args: {
-          key: string;
-          sourceDir: string;
-        }) => Promise<{ reportUrl?: string | null }>;
-      }
+      fetch: (args: { key: string; destDir: string }) => Promise<void>;
+      publish: (args: {
+        key: string;
+        sourceDir: string;
+      }) => Promise<{ reportUrl?: string | null }>;
+    }
     | undefined;
 
   const notifiers: Array<{
@@ -117,7 +117,7 @@ export async function run(configPath = "regconfig.json") {
 
   if (!keyGenerator) {
     throw new Error(
-      "No keyGenerator plugin found. At least one plugin must provide a keyGenerator.",
+      'No keyGenerator plugin found. At least one plugin must provide a keyGenerator.',
     );
   }
 

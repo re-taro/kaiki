@@ -2948,7 +2948,6 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.18",
- "tokio",
  "tracing",
  "walkdir",
 ]
@@ -3001,7 +3000,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "serde",
  "serde_json",
 ]
 
@@ -3012,7 +3010,6 @@ dependencies = [
  "kaiki_config",
  "kaiki_report",
  "reqwest",
- "serde",
  "serde_json",
  "thiserror 2.0.18",
  "tracing",
@@ -3024,7 +3021,6 @@ version = "0.0.1"
 dependencies = [
  "askama",
  "compact_str",
- "kaiki_config",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -3040,11 +3036,8 @@ dependencies = [
  "google-cloud-storage",
  "kaiki_config",
  "mime_guess",
- "serde",
- "serde_json",
  "thiserror 2.0.18",
  "tokio",
- "tracing",
  "walkdir",
 ]
 

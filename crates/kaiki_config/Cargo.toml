@@ -2,11 +2,11 @@
 name = "kaiki_config"
 version.workspace = true
 authors.workspace = true
+categories.workspace = true
 edition.workspace = true
+keywords.workspace = true
 license.workspace = true
 repository.workspace = true
-keywords.workspace = true
-categories.workspace = true
 description = "Configuration parsing for kaiki visual regression testing"
 
 [lints]

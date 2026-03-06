@@ -53,8 +53,7 @@ pub fn color_delta(img1: &[u8], img2: &[u8], k: usize, m: usize, y_only: bool) -
         // Background pattern (pixelmatch uses byte offset k for the pattern)
         let rb = 48.0 + 159.0 * f64::from((k % 2) as u8);
         let gb = 48.0 + 159.0 * f64::from(((k as f64 / PHI).floor() as usize % 2) as u8);
-        let bb = 48.0
-            + 159.0 * f64::from(((k as f64 / (1.0 + PHI)).floor() as usize % 2) as u8);
+        let bb = 48.0 + 159.0 * f64::from(((k as f64 / (1.0 + PHI)).floor() as usize % 2) as u8);
 
         dr = (r1 * a1 - r2 * a2 - rb * da) / 255.0;
         dg = (g1 * a1 - g2 * a2 - gb * da) / 255.0;

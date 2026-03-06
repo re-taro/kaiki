@@ -185,10 +185,10 @@ impl RegProcessor {
 
         // Build a custom rayon thread pool with configured concurrency
         let concurrency = kaiki_config::effective_concurrency(&self.config) as usize;
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(concurrency)
-            .build()
-            .unwrap_or_else(|_| rayon::ThreadPoolBuilder::new().build().expect("failed to build default rayon pool"));
+        let pool =
+            rayon::ThreadPoolBuilder::new().num_threads(concurrency).build().unwrap_or_else(|_| {
+                rayon::ThreadPoolBuilder::new().build().expect("failed to build default rayon pool")
+            });
 
         // Parallel comparison in batches to control peak memory usage.
         // Each batch processes `concurrency * 4` images, then releases their buffers
@@ -199,50 +199,51 @@ impl RegProcessor {
         for chunk in common.chunks(batch_size) {
             let batch: Vec<_> = pool.install(|| {
                 chunk
-                .par_iter()
-                .map(|name| {
-                    let actual_path = actual_work_dir.join(name.as_str());
-                    let expected_path = expected_dir.join(name.as_str());
+                    .par_iter()
+                    .map(|name| {
+                        let actual_path = actual_work_dir.join(name.as_str());
+                        let expected_path = expected_dir.join(name.as_str());
 
-                    let actual_bytes = std::fs::read(&actual_path).ok();
-                    let expected_bytes = std::fs::read(&expected_path).ok();
+                        let actual_bytes = std::fs::read(&actual_path).ok();
+                        let expected_bytes = std::fs::read(&expected_path).ok();
 
-                    match (actual_bytes, expected_bytes) {
-                        (Some(actual), Some(expected)) => {
-                            match kaiki_diff::compare_image_files(&actual, &expected, &options) {
-                                Ok(result) => {
-                                    let passed = kaiki_report::is_passed(
-                                        result.diff_count,
-                                        result.total_pixels,
-                                        threshold_pixel,
-                                        threshold_rate,
-                                    );
-
-                                    // Write diff image
-                                    if let Some(diff_image) = result.diff_image {
-                                        let diff_path = diff_dir.join(name.as_str());
-                                        if let Some(parent) = diff_path.parent() {
-                                            let _ = std::fs::create_dir_all(parent);
-                                        }
-                                        let img = image::RgbaImage::from_raw(
-                                            diff_image.width,
-                                            diff_image.height,
-                                            diff_image.data,
+                        match (actual_bytes, expected_bytes) {
+                            (Some(actual), Some(expected)) => {
+                                match kaiki_diff::compare_image_files(&actual, &expected, &options)
+                                {
+                                    Ok(result) => {
+                                        let passed = kaiki_report::is_passed(
+                                            result.diff_count,
+                                            result.total_pixels,
+                                            threshold_pixel,
+                                            threshold_rate,
                                         );
-                                        if let Some(img) = img {
-                                            let _ = img.save(&diff_path);
-                                        }
-                                    }
 
-                                    (name.clone(), passed)
+                                        // Write diff image
+                                        if let Some(diff_image) = result.diff_image {
+                                            let diff_path = diff_dir.join(name.as_str());
+                                            if let Some(parent) = diff_path.parent() {
+                                                let _ = std::fs::create_dir_all(parent);
+                                            }
+                                            let img = image::RgbaImage::from_raw(
+                                                diff_image.width,
+                                                diff_image.height,
+                                                diff_image.data,
+                                            );
+                                            if let Some(img) = img {
+                                                let _ = img.save(&diff_path);
+                                            }
+                                        }
+
+                                        (name.clone(), passed)
+                                    }
+                                    Err(_) => (name.clone(), false),
                                 }
-                                Err(_) => (name.clone(), false),
                             }
+                            _ => (name.clone(), false),
                         }
-                        _ => (name.clone(), false),
-                    }
-                })
-                .collect()
+                    })
+                    .collect()
             });
             results.extend(batch);
         }
@@ -277,12 +278,8 @@ impl RegProcessor {
         let json_path = self.working_dir.join("out.json");
         kaiki_report::write_json_report(&comparison, &json_path)?;
 
-        let ximgdiff_enabled = self
-            .config
-            .ximgdiff
-            .as_ref()
-            .and_then(|x| x.enabled)
-            .unwrap_or(false);
+        let ximgdiff_enabled =
+            self.config.ximgdiff.as_ref().and_then(|x| x.enabled).unwrap_or(false);
 
         let html_path = self.working_dir.join("index.html");
         kaiki_report::write_html_report(&comparison, &html_path, ximgdiff_enabled)?;

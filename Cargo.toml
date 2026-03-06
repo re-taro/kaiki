@@ -5,11 +5,11 @@ resolver = "3"
 [workspace.package]
 version = "0.0.1"
 authors = ["re-taro <me@re-taro.dev>"]
+categories = ["development-tools::testing", "multimedia::images"]
 edition = "2024"
+keywords = ["visual-regression", "testing", "image-diff"]
 license = "MIT"
 repository = "https://github.com/re-taro/kaiki"
-keywords = ["visual-regression", "testing", "image-diff"]
-categories = ["development-tools::testing", "multimedia::images"]
 
 [workspace.lints.rust]
 absolute_paths_not_starting_with_crate = "warn"
@@ -46,13 +46,13 @@ infinite_loop = "warn"
 
 [workspace.dependencies]
 # Internal crates
-kaiki_diff = { path = "crates/kaiki_diff" }
 kaiki_config = { path = "crates/kaiki_config" }
-kaiki_report = { path = "crates/kaiki_report" }
-kaiki_git = { path = "crates/kaiki_git" }
-kaiki_storage = { path = "crates/kaiki_storage" }
-kaiki_notify = { path = "crates/kaiki_notify" }
 kaiki_core = { path = "crates/kaiki_core" }
+kaiki_diff = { path = "crates/kaiki_diff" }
+kaiki_git = { path = "crates/kaiki_git" }
+kaiki_notify = { path = "crates/kaiki_notify" }
+kaiki_report = { path = "crates/kaiki_report" }
+kaiki_storage = { path = "crates/kaiki_storage" }
 
 # Image processing
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "tiff", "bmp", "gif"] }
@@ -82,19 +82,19 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 flate2 = "1"
 
 # Filesystem
-walkdir = "2"
 mime_guess = "2"
+walkdir = "2"
 
 # Async
-tokio = { version = "1", features = ["full"] }
 futures = "0.3"
+tokio = { version = "1", features = ["full"] }
 
 # Parallelism
 rayon = "1"
 
 # Allocators
-mimalloc = "0.1"
 bumpalo = { version = "3", features = ["collections"] }
+mimalloc = "0.1"
 
 # String optimization
 compact_str = { version = "0.8", features = ["serde"] }
@@ -111,12 +111,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # WASM
+serde-wasm-bindgen = "0.6"
 wasm-bindgen = "0.2"
 wasm-bindgen-test = "0.3"
-serde-wasm-bindgen = "0.6"
-
-# URL encoding
-urlencoding = "2"
 
 # Benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }

@@ -5,8 +5,8 @@ mod render;
 
 pub use regions::BoundingBox;
 
-use xxhash_rust::xxh3::xxh3_64;
 use thiserror::Error;
+use xxhash_rust::xxh3::xxh3_64;
 
 #[derive(Debug, Clone)]
 pub struct ImageData {
@@ -165,7 +165,13 @@ pub fn compare_images(
                     // Different pixel
                     diff_count += 1;
                     diff_mask[(y * width + x) as usize] = true;
-                    render::draw_pixel_diff(&mut diff_pixels, pos, delta, diff_color, diff_color_alt);
+                    render::draw_pixel_diff(
+                        &mut diff_pixels,
+                        pos,
+                        delta,
+                        diff_color,
+                        diff_color_alt,
+                    );
                 }
             } else {
                 // Matching pixel - greyscale
@@ -242,7 +248,8 @@ mod tests {
         {
             use image::ImageEncoder;
             let encoder = image::codecs::png::PngEncoder::new(&mut png_buf);
-            encoder.write_image(&img.data, img.width, img.height, image::ExtendedColorType::Rgba8)
+            encoder
+                .write_image(&img.data, img.width, img.height, image::ExtendedColorType::Rgba8)
                 .unwrap();
         }
         let options = CompareOptions::default();

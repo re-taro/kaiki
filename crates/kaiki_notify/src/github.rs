@@ -299,11 +299,8 @@ mod tests {
     #[test]
     fn test_build_comment_body_format() {
         let config = GitHubNotifyConfig::default();
-        let notifier = GitHubNotifier {
-            client: reqwest::Client::new(),
-            token: "fake".to_string(),
-            config,
-        };
+        let notifier =
+            GitHubNotifier { client: reqwest::Client::new(), token: "fake".to_string(), config };
         let params = sample_params(None);
         let body = notifier.build_comment_body(&params);
         assert!(body.contains(COMMENT_MARKER));
@@ -317,11 +314,8 @@ mod tests {
     #[test]
     fn test_build_comment_body_with_report_url() {
         let config = GitHubNotifyConfig::default();
-        let notifier = GitHubNotifier {
-            client: reqwest::Client::new(),
-            token: "fake".to_string(),
-            config,
-        };
+        let notifier =
+            GitHubNotifier { client: reqwest::Client::new(), token: "fake".to_string(), config };
         let params = sample_params(Some("https://example.com/report".to_string()));
         let body = notifier.build_comment_body(&params);
         assert!(body.contains("[Report](https://example.com/report)"));

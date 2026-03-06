@@ -14,11 +14,7 @@ fn decode(raw: &[u8]) -> ImageData {
     let img =
         image::load_from_memory(raw).unwrap_or_else(|e| panic!("failed to decode image: {e}"));
     let rgba = img.to_rgba8();
-    ImageData {
-        width: rgba.width(),
-        height: rgba.height(),
-        data: rgba.into_raw(),
-    }
+    ImageData { width: rgba.width(), height: rgba.height(), data: rgba.into_raw() }
 }
 
 fn make_solid(w: u32, h: u32, r: u8, g: u8, b: u8) -> ImageData {
@@ -27,11 +23,7 @@ fn make_solid(w: u32, h: u32, r: u8, g: u8, b: u8) -> ImageData {
     for _ in 0..pixels {
         data.extend_from_slice(&[r, g, b, 255]);
     }
-    ImageData {
-        width: w,
-        height: h,
-        data,
-    }
+    ImageData { width: w, height: h, data }
 }
 
 /// Deterministic pseudo-noise: mutate ~25 % of pixels using a simple hash.
@@ -49,11 +41,7 @@ fn make_noisy(base: &ImageData) -> ImageData {
             data[off + 2] = data[off + 2].wrapping_add(40);
         }
     }
-    ImageData {
-        width: base.width,
-        height: base.height,
-        data,
-    }
+    ImageData { width: base.width, height: base.height, data }
 }
 
 // ---------------------------------------------------------------------------
@@ -201,19 +189,13 @@ fn bench_compare_noisy_1080p(c: &mut Criterion) {
     group.throughput(Throughput::Elements(pixels));
 
     // AA detection ON (enable_antialias: false = AA detection ON)
-    let opts_aa_on = CompareOptions {
-        enable_antialias: false,
-        ..CompareOptions::default()
-    };
+    let opts_aa_on = CompareOptions { enable_antialias: false, ..CompareOptions::default() };
     group.bench_function("aa-on", |b| {
         b.iter(|| kaiki_diff::compare_images(&base, &noisy, &opts_aa_on));
     });
 
     // AA detection OFF
-    let opts_aa_off = CompareOptions {
-        enable_antialias: true,
-        ..CompareOptions::default()
-    };
+    let opts_aa_off = CompareOptions { enable_antialias: true, ..CompareOptions::default() };
     group.bench_function("aa-off", |b| {
         b.iter(|| kaiki_diff::compare_images(&base, &noisy, &opts_aa_off));
     });
@@ -233,18 +215,12 @@ fn bench_compare_antialias(c: &mut Criterion) {
     let pixels = (actual.width as u64) * (actual.height as u64);
     group.throughput(Throughput::Elements(pixels));
 
-    let opts_aa_on = CompareOptions {
-        enable_antialias: false,
-        ..CompareOptions::default()
-    };
+    let opts_aa_on = CompareOptions { enable_antialias: false, ..CompareOptions::default() };
     group.bench_function("aa-on", |b| {
         b.iter(|| kaiki_diff::compare_images(&actual, &expected, &opts_aa_on));
     });
 
-    let opts_aa_off = CompareOptions {
-        enable_antialias: true,
-        ..CompareOptions::default()
-    };
+    let opts_aa_off = CompareOptions { enable_antialias: true, ..CompareOptions::default() };
     group.bench_function("aa-off", |b| {
         b.iter(|| kaiki_diff::compare_images(&actual, &expected, &opts_aa_off));
     });
@@ -265,10 +241,7 @@ fn bench_compare_threshold(c: &mut Criterion) {
     group.throughput(Throughput::Elements(pixels));
 
     for threshold in [0.05, 0.1, 0.2] {
-        let opts = CompareOptions {
-            matching_threshold: threshold,
-            ..CompareOptions::default()
-        };
+        let opts = CompareOptions { matching_threshold: threshold, ..CompareOptions::default() };
         group.bench_function(format!("t={threshold}"), |b| {
             b.iter(|| kaiki_diff::compare_images(&actual, &expected, &opts));
         });

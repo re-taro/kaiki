@@ -59,11 +59,7 @@ pub fn draw_pixel_diff(
     diff_color: &[u8; 3],
     diff_color_alt: Option<&[u8; 3]>,
 ) {
-    let color = if delta < 0.0 {
-        diff_color_alt.unwrap_or(diff_color)
-    } else {
-        diff_color
-    };
+    let color = if delta < 0.0 { diff_color_alt.unwrap_or(diff_color) } else { diff_color };
     let out = &mut output[pos..pos + 4];
     out[0] = color[0];
     out[1] = color[1];
@@ -112,11 +108,7 @@ mod tests {
 
     #[test]
     fn test_expand_image_larger() {
-        let img = ImageData {
-            width: 1,
-            height: 1,
-            data: vec![255, 0, 0, 255],
-        };
+        let img = ImageData { width: 1, height: 1, data: vec![255, 0, 0, 255] };
         let expanded = expand_image(&img, 2, 2).unwrap();
         assert_eq!(expanded.width, 2);
         assert_eq!(expanded.height, 2);

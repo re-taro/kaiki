@@ -256,11 +256,8 @@ mod tests {
         assert_eq!(effective_threshold_rate(&core), Some(0.2));
 
         // threshold_rate takes precedence
-        let core = CoreConfig {
-            threshold_rate: Some(0.1),
-            threshold: Some(0.2),
-            ..CoreConfig::default()
-        };
+        let core =
+            CoreConfig { threshold_rate: Some(0.1), threshold: Some(0.2), ..CoreConfig::default() };
         assert_eq!(effective_threshold_rate(&core), Some(0.1));
     }
 
@@ -302,7 +299,8 @@ mod tests {
     fn test_env_expansion_in_config() {
         // SAFETY: test-only, single-threaded test runner
         unsafe { std::env::set_var("KAIKI_TEST_BUCKET", "test-bucket") };
-        let json = r#"{ "core": {}, "plugins": { "s3": { "bucketName": "${KAIKI_TEST_BUCKET}" } } }"#;
+        let json =
+            r#"{ "core": {}, "plugins": { "s3": { "bucketName": "${KAIKI_TEST_BUCKET}" } } }"#;
         let expanded = env::expand_env_vars(json).unwrap();
         assert!(expanded.contains("test-bucket"));
     }
@@ -328,18 +326,12 @@ mod tests {
         // sseKMSKeyId (reg-suit compatible uppercase KMS)
         let json = r#"{ "bucketName": "b", "sseKMSKeyId": "arn:aws:kms:us-east-1:123:key/abc" }"#;
         let config: S3PluginConfig = serde_json::from_str(json).unwrap();
-        assert_eq!(
-            config.sse_kms_key_id,
-            Some("arn:aws:kms:us-east-1:123:key/abc".to_string())
-        );
+        assert_eq!(config.sse_kms_key_id, Some("arn:aws:kms:us-east-1:123:key/abc".to_string()));
 
         // sseKmsKeyId (alias camelCase)
         let json = r#"{ "bucketName": "b", "sseKmsKeyId": "arn:aws:kms:us-east-1:123:key/def" }"#;
         let config: S3PluginConfig = serde_json::from_str(json).unwrap();
-        assert_eq!(
-            config.sse_kms_key_id,
-            Some("arn:aws:kms:us-east-1:123:key/def".to_string())
-        );
+        assert_eq!(config.sse_kms_key_id, Some("arn:aws:kms:us-east-1:123:key/def".to_string()));
 
         // Without KMS key — backward compatible
         let json = r#"{ "bucketName": "b", "sse": true }"#;

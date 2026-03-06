@@ -4,16 +4,20 @@ use kaiki_diff::{CompareOptions, compare_image_files};
 
 fn load_fixture(name: &str) -> Vec<u8> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures").join(name);
-    std::fs::read(&path)
-        .unwrap_or_else(|_| panic!("fixture not found: {name}. Run `cargo xtask download-fixtures`"))
+    std::fs::read(&path).unwrap_or_else(|_| {
+        panic!("fixture not found: {name}. Run `cargo xtask download-fixtures`")
+    })
 }
 
 /// Helper to run comparison and return diff_count.
 fn diff_count(a: &str, b: &str, threshold: f64, enable_antialias: bool) -> u64 {
     let actual = load_fixture(a);
     let expected = load_fixture(b);
-    let options =
-        CompareOptions { matching_threshold: threshold, enable_antialias, ..CompareOptions::default() };
+    let options = CompareOptions {
+        matching_threshold: threshold,
+        enable_antialias,
+        ..CompareOptions::default()
+    };
     let result = compare_image_files(&actual, &expected, &options).unwrap();
     result.diff_count
 }
@@ -29,10 +33,7 @@ fn pixelmatch_1a_vs_1b_threshold_005() {
 #[test]
 fn pixelmatch_2a_vs_2b_threshold_005() {
     let count = diff_count("2a.png", "2b.png", 0.05, false);
-    assert!(
-        (12430..=12440).contains(&count),
-        "expected ~12437, got {count}"
-    );
+    assert!((12430..=12440).contains(&count), "expected ~12437, got {count}");
 }
 
 // pixelmatch test: diffTest('3a', '3b', '3diff', {threshold: 0.05}, 212)
@@ -40,10 +41,7 @@ fn pixelmatch_2a_vs_2b_threshold_005() {
 #[test]
 fn pixelmatch_3a_vs_3b_threshold_005() {
     let count = diff_count("3a.png", "3b.png", 0.05, false);
-    assert!(
-        (210..=215).contains(&count),
-        "expected ~212, got {count}"
-    );
+    assert!((210..=215).contains(&count), "expected ~212, got {count}");
 }
 
 // pixelmatch test: diffTest('4a', '4b', '4diff', {threshold: 0.05}, 36049)
@@ -51,10 +49,7 @@ fn pixelmatch_3a_vs_3b_threshold_005() {
 #[test]
 fn pixelmatch_4a_vs_4b_threshold_005() {
     let count = diff_count("4a.png", "4b.png", 0.05, false);
-    assert!(
-        (36040..=36055).contains(&count),
-        "expected ~36049, got {count}"
-    );
+    assert!((36040..=36055).contains(&count), "expected ~36049, got {count}");
 }
 
 // pixelmatch test: diffTest('5a', '5b', '5diff', {threshold: 0.05}, 6)
@@ -86,8 +81,11 @@ fn pixelmatch_7a_vs_7b_default_threshold() {
 #[test]
 fn pixelmatch_md5_fastpath_identical_bytes() {
     let data = load_fixture("1a.png");
-    let options =
-        CompareOptions { matching_threshold: 0.05, enable_antialias: false, ..CompareOptions::default() };
+    let options = CompareOptions {
+        matching_threshold: 0.05,
+        enable_antialias: false,
+        ..CompareOptions::default()
+    };
     let result = compare_image_files(&data, &data, &options).unwrap();
     assert!(result.images_are_same);
     assert_eq!(result.diff_count, 0);

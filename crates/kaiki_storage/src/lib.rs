@@ -51,9 +51,8 @@ pub(crate) fn maybe_decompress(data: &[u8], content_encoding: Option<&str>) -> V
 
     use flate2::read::GzDecoder;
 
-    let is_gzip = content_encoding
-        .map(|enc| enc.to_ascii_lowercase().contains("gzip"))
-        .unwrap_or(false);
+    let is_gzip =
+        content_encoding.map(|enc| enc.to_ascii_lowercase().contains("gzip")).unwrap_or(false);
 
     if !is_gzip {
         return data.to_vec();
@@ -61,11 +60,7 @@ pub(crate) fn maybe_decompress(data: &[u8], content_encoding: Option<&str>) -> V
 
     let mut decoder = GzDecoder::new(data);
     let mut decompressed = Vec::new();
-    if decoder.read_to_end(&mut decompressed).is_ok() {
-        decompressed
-    } else {
-        data.to_vec()
-    }
+    if decoder.read_to_end(&mut decompressed).is_ok() { decompressed } else { data.to_vec() }
 }
 
 /// File extensions to include when uploading.

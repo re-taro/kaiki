@@ -5,11 +5,11 @@ use std::sync::Arc;
 use flate2::Compression;
 use flate2::write::GzEncoder;
 use google_cloud_storage::client::{Client, ClientConfig};
+use google_cloud_storage::http::objects::Object;
 use google_cloud_storage::http::objects::download::Range;
 use google_cloud_storage::http::objects::get::GetObjectRequest;
 use google_cloud_storage::http::objects::list::ListObjectsRequest;
 use google_cloud_storage::http::objects::upload::{UploadObjectRequest, UploadType};
-use google_cloud_storage::http::objects::Object;
 use kaiki_config::GcsPluginConfig;
 
 use crate::{MAX_CONCURRENCY, PublishResult, StorageError, UPLOAD_EXTENSIONS, maybe_decompress};
@@ -98,11 +98,7 @@ impl crate::Storage for GcsStorage {
 
                 let bytes = client
                     .download_object(
-                        &GetObjectRequest {
-                            bucket,
-                            object: obj_name,
-                            ..Default::default()
-                        },
+                        &GetObjectRequest { bucket, object: obj_name, ..Default::default() },
                         &Range::default(),
                     )
                     .await
@@ -151,9 +147,7 @@ impl crate::Storage for GcsStorage {
 
             // Gzip compress
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-            encoder
-                .write_all(&data)
-                .map_err(|e| StorageError::Compression(Box::new(e)))?;
+            encoder.write_all(&data).map_err(|e| StorageError::Compression(Box::new(e)))?;
             let compressed =
                 encoder.finish().map_err(|e| StorageError::Compression(Box::new(e)))?;
 
@@ -162,10 +156,8 @@ impl crate::Storage for GcsStorage {
             let semaphore = Arc::clone(&semaphore);
 
             handles.push(tokio::spawn(async move {
-                let _permit = semaphore
-                    .acquire()
-                    .await
-                    .map_err(|e| StorageError::Gcs(Box::new(e)))?;
+                let _permit =
+                    semaphore.acquire().await.map_err(|e| StorageError::Gcs(Box::new(e)))?;
 
                 let upload_type = UploadType::Multipart(Box::new(Object {
                     name: gcs_key.clone(),
@@ -176,10 +168,7 @@ impl crate::Storage for GcsStorage {
 
                 client
                     .upload_object(
-                        &UploadObjectRequest {
-                            bucket,
-                            ..Default::default()
-                        },
+                        &UploadObjectRequest { bucket, ..Default::default() },
                         compressed,
                         &upload_type,
                     )
@@ -229,27 +218,18 @@ mod tests {
     #[test]
     fn test_gcs_report_url_with_prefix() {
         let url = gcs_report_url("my-bucket", Some("my-prefix"), "abc123");
-        assert_eq!(
-            url,
-            "https://storage.googleapis.com/my-bucket/my-prefix/abc123/index.html"
-        );
+        assert_eq!(url, "https://storage.googleapis.com/my-bucket/my-prefix/abc123/index.html");
     }
 
     #[test]
     fn test_gcs_report_url_no_prefix() {
         let url = gcs_report_url("my-bucket", None, "abc123");
-        assert_eq!(
-            url,
-            "https://storage.googleapis.com/my-bucket/abc123/index.html"
-        );
+        assert_eq!(url, "https://storage.googleapis.com/my-bucket/abc123/index.html");
     }
 
     #[test]
     fn test_gcs_report_url_empty_prefix() {
         let url = gcs_report_url("my-bucket", Some(""), "abc123");
-        assert_eq!(
-            url,
-            "https://storage.googleapis.com/my-bucket/abc123/index.html"
-        );
+        assert_eq!(url, "https://storage.googleapis.com/my-bucket/abc123/index.html");
     }
 }

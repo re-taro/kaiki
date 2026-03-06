@@ -21,12 +21,11 @@ pub fn run_init_wizard() -> Result<bool, CliError> {
         .default("directory_contains_actual_images".into())
         .interact_text()?;
 
-    let working_dir: String = Input::new()
-        .with_prompt("Working directory")
-        .default(".reg".into())
-        .interact_text()?;
+    let working_dir: String =
+        Input::new().with_prompt("Working directory").default(".reg".into()).interact_text()?;
 
-    let keygen_items = &["reg-keygen-git-hash-plugin (recommended)", "reg-simple-keygen-plugin", "None"];
+    let keygen_items =
+        &["reg-keygen-git-hash-plugin (recommended)", "reg-simple-keygen-plugin", "None"];
     let keygen_idx = Select::new()
         .with_prompt("Key generator plugin")
         .items(keygen_items)
@@ -43,16 +42,11 @@ pub fn run_init_wizard() -> Result<bool, CliError> {
     };
 
     let storage_items = &["reg-publish-s3-plugin", "reg-publish-gcs-plugin", "None"];
-    let storage_idx = Select::new()
-        .with_prompt("Storage plugin")
-        .items(storage_items)
-        .default(0)
-        .interact()?;
+    let storage_idx =
+        Select::new().with_prompt("Storage plugin").items(storage_items).default(0).interact()?;
 
     let s3_bucket = if storage_idx == 0 {
-        let bucket: String = Input::new()
-            .with_prompt("S3 bucket name")
-            .interact_text()?;
+        let bucket: String = Input::new().with_prompt("S3 bucket name").interact_text()?;
         Some(bucket)
     } else {
         None
@@ -99,9 +93,7 @@ pub fn run_init_wizard() -> Result<bool, CliError> {
     };
 
     let gcs_bucket = if storage_idx == 1 {
-        let bucket: String = Input::new()
-            .with_prompt("GCS bucket name")
-            .interact_text()?;
+        let bucket: String = Input::new().with_prompt("GCS bucket name").interact_text()?;
         Some(bucket)
     } else {
         None
@@ -124,9 +116,7 @@ pub fn run_init_wizard() -> Result<bool, CliError> {
         .interact()?;
 
     let slack_webhook = if notifier_idxs.contains(&1) {
-        let url: String = Input::new()
-            .with_prompt("Slack webhook URL")
-            .interact_text()?;
+        let url: String = Input::new().with_prompt("Slack webhook URL").interact_text()?;
         Some(url)
     } else {
         None
@@ -177,10 +167,7 @@ fn build_config_json(p: BuildConfigParams) -> serde_json::Value {
 
     match p.keygen_idx {
         0 => {
-            plugins.insert(
-                "reg-keygen-git-hash-plugin".into(),
-                serde_json::json!({}),
-            );
+            plugins.insert("reg-keygen-git-hash-plugin".into(), serde_json::json!({}));
         }
         1 => {
             if let Some(key) = &p.expected_key {
@@ -210,10 +197,7 @@ fn build_config_json(p: BuildConfigParams) -> serde_json::Value {
                 if let Some(acl) = &p.s3_acl {
                     cfg.insert("acl".into(), serde_json::Value::String(acl.clone()));
                 }
-                plugins.insert(
-                    "reg-publish-s3-plugin".into(),
-                    serde_json::Value::Object(cfg),
-                );
+                plugins.insert("reg-publish-s3-plugin".into(), serde_json::Value::Object(cfg));
             }
         }
         1 => {
@@ -223,10 +207,7 @@ fn build_config_json(p: BuildConfigParams) -> serde_json::Value {
                 if let Some(pp) = &p.gcs_path_prefix {
                     cfg.insert("pathPrefix".into(), serde_json::Value::String(pp.clone()));
                 }
-                plugins.insert(
-                    "reg-publish-gcs-plugin".into(),
-                    serde_json::Value::Object(cfg),
-                );
+                plugins.insert("reg-publish-gcs-plugin".into(), serde_json::Value::Object(cfg));
             }
         }
         _ => {}
@@ -235,10 +216,7 @@ fn build_config_json(p: BuildConfigParams) -> serde_json::Value {
     for &idx in &p.notifier_idxs {
         match idx {
             0 => {
-                plugins.insert(
-                    "reg-notify-github-plugin".into(),
-                    serde_json::json!({}),
-                );
+                plugins.insert("reg-notify-github-plugin".into(), serde_json::json!({}));
             }
             1 => {
                 if let Some(url) = &p.slack_webhook {
@@ -339,7 +317,10 @@ mod tests {
         assert_eq!(plugins["reg-simple-keygen-plugin"]["expectedKey"], "main");
         assert_eq!(plugins["reg-publish-gcs-plugin"]["bucketName"], "gcs-bucket");
         assert_eq!(plugins["reg-publish-gcs-plugin"]["pathPrefix"], "prefix/");
-        assert_eq!(plugins["reg-notify-slack-plugin"]["webhookUrl"], "https://hooks.slack.com/test");
+        assert_eq!(
+            plugins["reg-notify-slack-plugin"]["webhookUrl"],
+            "https://hooks.slack.com/test"
+        );
     }
 
     #[test]

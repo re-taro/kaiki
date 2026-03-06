@@ -2,8 +2,8 @@ use std::fs;
 use std::path::Path;
 
 const FIXTURES: &[&str] = &[
-    "1a", "1b", "1diff", "2a", "2b", "2diff", "3a", "3b", "3diff", "4a", "4b", "4diff", "5a",
-    "5b", "5diff", "6a", "6b", "6diff", "7a", "7b",
+    "1a", "1b", "1diff", "2a", "2b", "2diff", "3a", "3b", "3diff", "4a", "4b", "4diff", "5a", "5b",
+    "5diff", "6a", "6b", "6diff", "7a", "7b",
 ];
 
 const BASE_URL: &str =
@@ -63,7 +63,9 @@ fn main() {
             panic!("unknown xtask command");
         }
         None => {
-            eprintln!("usage: cargo xtask <command>\n\ncommands:\n  download-fixtures  Download pixelmatch test fixtures");
+            eprintln!(
+                "usage: cargo xtask <command>\n\ncommands:\n  download-fixtures  Download pixelmatch test fixtures"
+            );
             panic!("no xtask command specified");
         }
     }

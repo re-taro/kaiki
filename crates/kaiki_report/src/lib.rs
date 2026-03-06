@@ -111,8 +111,7 @@ fn render_html_report(
 const XIMGDIFF_WASM: &[u8] =
     include_bytes!("../../../wasm/kaiki_diff_wasm/pkg/kaiki_diff_wasm_bg.wasm");
 #[cfg(feature = "ximgdiff")]
-const XIMGDIFF_JS: &str =
-    include_str!("../../../wasm/kaiki_diff_wasm/pkg/kaiki_diff_wasm.js");
+const XIMGDIFF_JS: &str = include_str!("../../../wasm/kaiki_diff_wasm/pkg/kaiki_diff_wasm.js");
 
 /// Write ximgdiff wasm assets to the output directory.
 #[cfg(feature = "ximgdiff")]
@@ -186,10 +185,7 @@ mod tests {
         let result = sample_result();
         assert!(result.has_failures());
 
-        let empty = ComparisonResult {
-            failed_items: vec![],
-            ..sample_result()
-        };
+        let empty = ComparisonResult { failed_items: vec![], ..sample_result() };
         assert!(!empty.has_failures());
     }
 

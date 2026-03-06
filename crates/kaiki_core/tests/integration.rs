@@ -70,13 +70,7 @@ fn test_compare_with_fixture_images() {
     };
     let keygen = SimpleKeygen { expected_key: "test-key".to_string() };
 
-    let processor = RegProcessor::new(
-        config,
-        working_dir,
-        Box::new(keygen),
-        None,
-        vec![],
-    );
+    let processor = RegProcessor::new(config, working_dir, Box::new(keygen), None, vec![]);
 
     let result = processor.compare().unwrap();
 
@@ -95,11 +89,8 @@ fn test_compare_new_and_deleted_items() {
     let blue = make_blue_png();
     let tmpdir = tempfile::tempdir().unwrap();
 
-    let (actual_dir, working_dir) = setup_fixture(
-        tmpdir.path(),
-        &[("actual_only.png", &red)],
-        &[("expected_only.png", &blue)],
-    );
+    let (actual_dir, working_dir) =
+        setup_fixture(tmpdir.path(), &[("actual_only.png", &red)], &[("expected_only.png", &blue)]);
 
     let config = CoreConfig {
         actual_dir: actual_dir.to_string_lossy().to_string(),
@@ -107,13 +98,7 @@ fn test_compare_new_and_deleted_items() {
     };
     let keygen = SimpleKeygen { expected_key: "test-key".to_string() };
 
-    let processor = RegProcessor::new(
-        config,
-        working_dir,
-        Box::new(keygen),
-        None,
-        vec![],
-    );
+    let processor = RegProcessor::new(config, working_dir, Box::new(keygen), None, vec![]);
 
     let result = processor.compare().unwrap();
 
@@ -128,11 +113,8 @@ fn test_report_generation() {
     let red = make_red_png();
     let tmpdir = tempfile::tempdir().unwrap();
 
-    let (actual_dir, working_dir) = setup_fixture(
-        tmpdir.path(),
-        &[("img.png", &red)],
-        &[("img.png", &red)],
-    );
+    let (actual_dir, working_dir) =
+        setup_fixture(tmpdir.path(), &[("img.png", &red)], &[("img.png", &red)]);
 
     let config = CoreConfig {
         actual_dir: actual_dir.to_string_lossy().to_string(),
@@ -140,13 +122,7 @@ fn test_report_generation() {
     };
     let keygen = SimpleKeygen { expected_key: "test-key".to_string() };
 
-    let processor = RegProcessor::new(
-        config,
-        working_dir.clone(),
-        Box::new(keygen),
-        None,
-        vec![],
-    );
+    let processor = RegProcessor::new(config, working_dir.clone(), Box::new(keygen), None, vec![]);
 
     let _result = processor.compare().unwrap();
 

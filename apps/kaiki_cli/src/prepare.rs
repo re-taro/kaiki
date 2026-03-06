@@ -40,10 +40,7 @@ fn validate_config(config: &RegSuitConfiguration) -> Result<(), CliError> {
         )?;
     }
     if let Some(a) = config.core.alpha {
-        ensure(
-            (0.0..=1.0).contains(&a),
-            format!("alpha must be between 0.0 and 1.0, got {a}"),
-        )?;
+        ensure((0.0..=1.0).contains(&a), format!("alpha must be between 0.0 and 1.0, got {a}"))?;
     }
 
     let mut keygen_count = 0u32;
@@ -84,10 +81,7 @@ fn validate_config(config: &RegSuitConfiguration) -> Result<(), CliError> {
         }
     }
 
-    ensure(
-        keygen_count <= 1,
-        format!("at most one keygen plugin allowed, found {keygen_count}"),
-    )?;
+    ensure(keygen_count <= 1, format!("at most one keygen plugin allowed, found {keygen_count}"))?;
     ensure(
         storage_count <= 1,
         format!("at most one storage plugin allowed, found {storage_count}"),

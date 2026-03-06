@@ -16,9 +16,8 @@ pub fn detect_pr_number() -> Option<u64> {
     if let Ok(path) = std::env::var("GITHUB_EVENT_PATH")
         && let Ok(content) = std::fs::read_to_string(&path)
         && let Ok(event) = serde_json::from_str::<serde_json::Value>(&content)
-        && let Some(pr) = event["pull_request"]["number"]
-            .as_u64()
-            .or_else(|| event["issue"]["number"].as_u64())
+        && let Some(pr) =
+            event["pull_request"]["number"].as_u64().or_else(|| event["issue"]["number"].as_u64())
     {
         return Some(pr);
     }

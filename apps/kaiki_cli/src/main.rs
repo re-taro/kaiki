@@ -114,10 +114,7 @@ async fn run_compare(config_path: &std::path::Path, dry_run: bool) -> Result<boo
     Ok(comparison.has_failures())
 }
 
-async fn run_sync_expected(
-    config_path: &std::path::Path,
-    dry_run: bool,
-) -> Result<bool, CliError> {
+async fn run_sync_expected(config_path: &std::path::Path, dry_run: bool) -> Result<bool, CliError> {
     let config = kaiki_config::load_config(config_path)?;
     let processor = build_processor(config, dry_run).await?;
     if let Some(key) = processor.get_expected_key()? {

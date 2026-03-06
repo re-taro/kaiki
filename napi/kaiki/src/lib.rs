@@ -85,9 +85,7 @@ fn extract_tsfn<T: 'static + Send + ToNapiValue>(
         |ctx: napi::threadsafe_function::ThreadSafeCallContext<T>| {
             // SAFETY: `to_napi_value` requires raw env and owned value; both come
             // from the ThreadSafeCallContext which guarantees validity.
-            let val = unsafe {
-                <T as ToNapiValue>::to_napi_value(ctx.env.raw(), ctx.value)?
-            };
+            let val = unsafe { <T as ToNapiValue>::to_napi_value(ctx.env.raw(), ctx.value)? };
             // SAFETY: `val` was just created from the same env above.
             Ok(vec![unsafe { JsUnknown::from_raw_unchecked(ctx.env.raw(), val) }])
         },
@@ -169,12 +167,9 @@ fn is_nullish(val: &JsUnknown) -> Result<bool> {
 pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
     // 1. Extract and deserialize config
     let config_val: JsUnknown = options.get_named_property("config")?;
-    let config_json: serde_json::Value =
-        env.from_js_value(&config_val)?;
-    let reg_config: RegSuitConfiguration =
-        serde_json::from_value(config_json).map_err(|e| {
-            Error::new(Status::InvalidArg, format!("invalid config: {e}"))
-        })?;
+    let config_json: serde_json::Value = env.from_js_value(&config_val)?;
+    let reg_config: RegSuitConfiguration = serde_json::from_value(config_json)
+        .map_err(|e| Error::new(Status::InvalidArg, format!("invalid config: {e}")))?;
 
     // 2. Extract key generator callbacks
     let kg_obj: JsObject = options.get_named_property("keyGenerator")?;
@@ -191,10 +186,8 @@ pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
             let pub_obj: JsObject = JsObject::from_unknown(publisher_unknown)?;
             let fetch_fn = extract_tsfn::<JsFetchArgs>(&env, &pub_obj, "fetch")?;
             let publish_fn = extract_tsfn::<JsPublishArgs>(&env, &pub_obj, "publish")?;
-            Some(
-                Box::new(JsStorage::new(fetch_fn, publish_fn))
-                    as Box<dyn kaiki_core::processor::StorageDyn>,
-            )
+            Some(Box::new(JsStorage::new(fetch_fn, publish_fn))
+                as Box<dyn kaiki_core::processor::StorageDyn>)
         }
     };
 
@@ -206,8 +199,7 @@ pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
         let length = notifiers_arr.get_array_length()?;
         for i in 0..length {
             let notifier_obj: JsObject = notifiers_arr.get_element(i)?;
-            let notify_fn =
-                extract_tsfn::<JsNotifyParams>(&env, &notifier_obj, "notify")?;
+            let notify_fn = extract_tsfn::<JsNotifyParams>(&env, &notifier_obj, "notify")?;
             notifiers.push(Box::new(JsNotifier::new(notify_fn)));
         }
     }
@@ -219,13 +211,8 @@ pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
     let (deferred, promise) = env.create_deferred()?;
 
     napi::bindgen_prelude::spawn(async move {
-        let processor = RegProcessor::new(
-            reg_config.core,
-            working_dir,
-            Box::new(keygen),
-            storage,
-            notifiers,
-        );
+        let processor =
+            RegProcessor::new(reg_config.core, working_dir, Box::new(keygen), storage, notifiers);
 
         match processor.run().await {
             Ok(result) => {
@@ -233,10 +220,7 @@ pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
                 deferred.resolve(|_env| Ok(js_result));
             }
             Err(e) => {
-                deferred.reject(Error::new(
-                    Status::GenericFailure,
-                    format!("{e}"),
-                ));
+                deferred.reject(Error::new(Status::GenericFailure, format!("{e}")));
             }
         }
     });

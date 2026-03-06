@@ -113,15 +113,13 @@ impl crate::Storage for S3Storage {
                         .await
                         .map_err(|e| StorageError::S3(Box::new(e)))?;
 
-                    let content_encoding =
-                        resp.content_encoding().map(|s| s.to_string());
+                    let content_encoding = resp.content_encoding().map(|s| s.to_string());
 
                     let body =
                         resp.body.collect().await.map_err(|e| StorageError::S3(Box::new(e)))?;
                     let bytes = body.into_bytes();
 
-                    let data =
-                        maybe_decompress(&bytes, content_encoding.as_deref());
+                    let data = maybe_decompress(&bytes, content_encoding.as_deref());
 
                     if let Some(parent) = dest_path.parent() {
                         tokio::fs::create_dir_all(parent).await.map_err(StorageError::Io)?;
@@ -253,27 +251,18 @@ mod tests {
     #[test]
     fn test_s3_report_url_with_prefix() {
         let url = s3_report_url("my-bucket", Some("my-prefix"), "abc123");
-        assert_eq!(
-            url,
-            "https://my-bucket.s3.amazonaws.com/my-prefix/abc123/index.html"
-        );
+        assert_eq!(url, "https://my-bucket.s3.amazonaws.com/my-prefix/abc123/index.html");
     }
 
     #[test]
     fn test_s3_report_url_no_prefix() {
         let url = s3_report_url("my-bucket", None, "abc123");
-        assert_eq!(
-            url,
-            "https://my-bucket.s3.amazonaws.com/abc123/index.html"
-        );
+        assert_eq!(url, "https://my-bucket.s3.amazonaws.com/abc123/index.html");
     }
 
     #[test]
     fn test_s3_report_url_empty_prefix() {
         let url = s3_report_url("my-bucket", Some(""), "abc123");
-        assert_eq!(
-            url,
-            "https://my-bucket.s3.amazonaws.com/abc123/index.html"
-        );
+        assert_eq!(url, "https://my-bucket.s3.amazonaws.com/abc123/index.html");
     }
 }

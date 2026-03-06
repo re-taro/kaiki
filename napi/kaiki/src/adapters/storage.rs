@@ -55,10 +55,8 @@ impl StorageDyn for JsStorage {
         key: &'a str,
         dest_dir: &'a Path,
     ) -> Pin<Box<dyn Future<Output = Result<(), StorageError>> + Send + 'a>> {
-        let args = JsFetchArgs {
-            key: key.to_string(),
-            dest_dir: dest_dir.to_string_lossy().into_owned(),
-        };
+        let args =
+            JsFetchArgs { key: key.to_string(), dest_dir: dest_dir.to_string_lossy().into_owned() };
         Box::pin(async move {
             let promise: Promise<()> = self
                 .fetch_fn
@@ -84,8 +82,7 @@ impl StorageDyn for JsStorage {
                 .call_async(Ok(args))
                 .await
                 .map_err(|e| StorageError::Config(e.reason.clone()))?;
-            let result =
-                promise.await.map_err(|e| StorageError::Config(e.reason.clone()))?;
+            let result = promise.await.map_err(|e| StorageError::Config(e.reason.clone()))?;
             Ok(PublishResult { report_url: result.report_url })
         })
     }

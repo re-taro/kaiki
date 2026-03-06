@@ -1,14 +1,14 @@
-import { describe, bench, beforeAll, afterAll } from 'vitest';
+import { afterAll, beforeAll, bench, describe } from 'vitest';
 import {
-  makePng,
-  RED_PNG,
   BLUE_PNG,
   createTempDir,
-  setupFixture,
-  mockKeyGenerator,
-  mockPublisher,
-  mockNotifier,
   loadNativeRun,
+  makePng,
+  mockKeyGenerator,
+  mockNotifier,
+  mockPublisher,
+  RED_PNG,
+  setupFixture,
 } from '../__tests__/helpers';
 
 const run = loadNativeRun();
@@ -107,11 +107,13 @@ describe('Scaling', () => {
     return { actual, expected };
   }
 
-  for (const [count, iterations] of [
-    [10, 20],
-    [50, 10],
-    [100, 5],
-  ] as const) {
+  for (
+    const [count, iterations] of [
+      [10, 20],
+      [50, 10],
+      [100, 5],
+    ] as const
+  ) {
     describe(`${count} images`, () => {
       let tmpDir: string;
       let cleanup: () => void;

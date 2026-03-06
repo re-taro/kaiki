@@ -5,9 +5,7 @@ use crate::{Notifier, NotifyError, NotifyParams};
 /// Build a diff image URL from the report URL.
 /// Strips `index.html` from the report URL and appends `{diff_dir}/{image_name}`.
 fn diff_image_url(report_url: &str, diff_dir: &str, image_name: &str) -> String {
-    let base = report_url
-        .strip_suffix("index.html")
-        .unwrap_or(report_url);
+    let base = report_url.strip_suffix("index.html").unwrap_or(report_url);
     format!("{base}{diff_dir}/{image_name}")
 }
 
@@ -107,11 +105,7 @@ mod tests {
     fn sample_comparison(has_failures: bool, has_changes: bool) -> ComparisonResult {
         ComparisonResult {
             failed_items: if has_failures { vec!["a.png".into()] } else { vec![] },
-            new_items: if has_changes && !has_failures {
-                vec!["b.png".into()]
-            } else {
-                vec![]
-            },
+            new_items: if has_changes && !has_failures { vec!["b.png".into()] } else { vec![] },
             deleted_items: vec![],
             passed_items: vec!["c.png".into()],
             expected_items: vec![],
@@ -166,10 +160,7 @@ mod tests {
             "diff",
             "sub/b.png",
         );
-        assert_eq!(
-            url,
-            "https://bucket.s3.amazonaws.com/prefix/key/diff/sub/b.png"
-        );
+        assert_eq!(url, "https://bucket.s3.amazonaws.com/prefix/key/diff/sub/b.png");
     }
 
     #[test]
@@ -239,10 +230,7 @@ mod tests {
         let payload = build_slack_payload(&params);
         let attachment = &payload["attachments"][0];
         assert!(attachment.get("image_url").is_some());
-        assert_eq!(
-            attachment["image_url"],
-            "https://bucket.s3.amazonaws.com/key/diff/a.png"
-        );
+        assert_eq!(attachment["image_url"], "https://bucket.s3.amazonaws.com/key/diff/a.png");
     }
 
     #[test]

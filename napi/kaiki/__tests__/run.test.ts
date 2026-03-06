@@ -1,16 +1,16 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  RED_PNG,
   BLUE_PNG,
-  GREEN_PNG,
   createTempDir,
-  setupFixture,
-  mockKeyGenerator,
-  mockPublisher,
-  mockNotifier,
+  GREEN_PNG,
   loadNativeRun,
+  mockKeyGenerator,
+  mockNotifier,
+  mockPublisher,
+  RED_PNG,
+  setupFixture,
 } from './helpers';
 
 const run = loadNativeRun();
