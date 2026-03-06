@@ -1,0 +1,36 @@
+[package]
+name = "kaiki_cli"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "CLI for kaiki visual regression testing"
+
+[[bin]]
+name = "kaiki"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[features]
+default = []
+ximgdiff = ["kaiki_core/ximgdiff"]
+
+[dependencies]
+kaiki_core = { workspace = true }
+kaiki_config = { workspace = true }
+kaiki_git = { workspace = true }
+kaiki_storage = { workspace = true }
+kaiki_notify = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dialoguer = { workspace = true }
+mimalloc = { workspace = true }
