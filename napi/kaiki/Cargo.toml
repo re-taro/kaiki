@@ -17,5 +17,17 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 kaiki_core = { workspace = true }
-napi = { workspace = true }
+kaiki_git = { workspace = true }
+kaiki_storage = { workspace = true }
+kaiki_notify = { workspace = true }
+kaiki_config = { workspace = true }
+kaiki_report = { workspace = true }
+napi = { version = "2", features = ["async", "serde-json", "napi4"] }
 napi-derive = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+compact_str = { workspace = true }
+futures = { workspace = true }
+
+[build-dependencies]
+napi-build = "2"
