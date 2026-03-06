@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reg report</title>
+<link rel="icon" href="{{ favicon|safe }}">
+<style>{{ css|safe }}</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="application/json" id="reg-data">{{ json_data|safe }}</script>
+<script>{{ js|safe }}</script>
+{% if ximgdiff_enabled %}
+<script type="module">
+import init, { compare_pixels_with_regions } from './kaiki_diff_wasm.js';
+try {
+  await init('./kaiki_diff_wasm_bg.wasm');
+  window.__kaikiWasm = { comparePixelsWithRegions: compare_pixels_with_regions };
+  document.dispatchEvent(new Event('kaiki-wasm-ready'));
+} catch (e) {
+  console.warn('kaiki wasm failed to load:', e);
+}
+</script>
+{% endif %}
+</body>
+</html>
