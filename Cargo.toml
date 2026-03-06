@@ -1,0 +1,139 @@
+[workspace]
+members = ["apps/*", "crates/*", "napi/*", "wasm/*", "xtask"]
+resolver = "3"
+
+[workspace.package]
+version = "0.0.1"
+authors = ["re-taro <me@re-taro.dev>"]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/re-taro/kaiki"
+keywords = ["visual-regression", "testing", "image-diff"]
+categories = ["development-tools::testing", "multimedia::images"]
+
+[workspace.lints.rust]
+absolute_paths_not_starting_with_crate = "warn"
+non_ascii_idents = "warn"
+unit-bindings = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)', 'cfg(coverage_nightly)'] }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+# restriction
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+print_stdout = "warn" # Must be opt-in
+print_stderr = "warn" # Must be opt-in
+allow_attributes = "warn"
+# I like the explicitness of this rule as it removes confusion around `clone`.
+# This increases readability, avoids `clone` mindlessly and heap allocating by accident.
+clone_on_ref_ptr = "warn"
+# These two are mutually exclusive, I like `mod.rs` files for better fuzzy searches on module entries.
+self_named_module_files = "warn" # "-Wclippy::mod_module_files"
+empty_drop = "warn"
+empty_structs_with_brackets = "warn"
+exit = "warn"
+filetype_is_file = "warn"
+get_unwrap = "warn"
+impl_trait_in_params = "warn"
+rc_buffer = "warn"
+rc_mutex = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+unnecessary_safety_comment = "warn"
+undocumented_unsafe_blocks = "warn"
+infinite_loop = "warn"
+
+[workspace.dependencies]
+# Internal crates
+kaiki_diff = { path = "crates/kaiki_diff" }
+kaiki_config = { path = "crates/kaiki_config" }
+kaiki_report = { path = "crates/kaiki_report" }
+kaiki_git = { path = "crates/kaiki_git" }
+kaiki_storage = { path = "crates/kaiki_storage" }
+kaiki_notify = { path = "crates/kaiki_notify" }
+kaiki_core = { path = "crates/kaiki_core" }
+
+# Image processing
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "tiff", "bmp", "gif"] }
+
+# Hashing
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Templating
+askama = "0.13"
+
+# Git
+gix = { version = "0.72", default-features = false, features = ["basic", "revision"] }
+
+# Cloud storage
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1"
+google-cloud-storage = "0.22"
+
+# HTTP
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# Compression
+flate2 = "1"
+
+# Filesystem
+walkdir = "2"
+mime_guess = "2"
+
+# Async
+tokio = { version = "1", features = ["full"] }
+
+# Parallelism
+rayon = "1"
+
+# Allocators
+mimalloc = "0.1"
+bumpalo = { version = "3", features = ["collections"] }
+
+# String optimization
+compact_str = { version = "0.8", features = ["serde"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+dialoguer = "0.11"
+
+# Error handling
+thiserror = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# WASM
+wasm-bindgen = "0.2"
+wasm-bindgen-test = "0.3"
+serde-wasm-bindgen = "0.6"
+
+# URL encoding
+urlencoding = "2"
+
+# Benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# NAPI
+napi = { version = "2", features = ["async", "serde-json"] }
+napi-derive = "2"
+
+# Optimize the hot path (image diff) even in dev builds
+[profile.dev.package.kaiki_diff]
+opt-level = 3
+
+[profile.release]
+# Configurations explicitly listed here for clarity.
+# Using the best options for performance.
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols" # set to `false` for debug information
+debug = false # set to `true` for debug information
+panic = "abort" # Let it crash and force ourselves to write safe Rust.
