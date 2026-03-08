@@ -1,0 +1,10 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # dtolnay/rust-toolchain uses the tag as the toolchain version selector.
+        # SHA pinning is explicitly discouraged by the action author.
+        dtolnay/rust-toolchain: any
+  # dtolnay/rust-toolchain and softprops/action-gh-release are intentional choices.
+  superfluous-actions:
+    disable: true
