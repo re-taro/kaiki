@@ -32,8 +32,7 @@ impl GitHashKeygen {
         // Get the current branch name (before peel mutates head)
         let current_branch = head.referent_name().map(|n| n.as_bstr().to_string());
 
-        let head_commit =
-            head.peel_to_commit().map_err(|e| GitError::Git(e.to_string()))?;
+        let head_commit = head.peel_to_commit().map_err(|e| GitError::Git(e.to_string()))?;
 
         tracing::debug!(
             branch = ?current_branch,
