@@ -51,13 +51,15 @@ lint:
   cargo clippy -p kaiki_napi -- --deny warnings
 
 wasm-build:
-  wasm-pack build wasm/kaiki_diff_wasm --target nodejs
+  cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
+  wasm-bindgen --target nodejs --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
 
 wasm-build-web:
-  wasm-pack build wasm/kaiki_diff_wasm --target web
+  cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
+  wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
 
 wasm-test:
-  wasm-pack test --node wasm/kaiki_diff_wasm
+  cargo test --target wasm32-unknown-unknown -p kaiki_diff_wasm
 
 napi-test:
   cd napi/kaiki && pnpm run build:debug && pnpm test

@@ -85,12 +85,11 @@ jobs:
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
-      - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
-      - name: Install binaryen
+      - name: Build wasm bindings
         run: |
-          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
-          echo "/tmp/binaryen-version_126/bin" >> "$GITHUB_PATH"
-      - run: wasm-pack build wasm/kaiki_diff_wasm --target web
+          cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
+          cargo install wasm-bindgen-cli@0.2.114
+          wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
       - run: cargo check --workspace --all-features --all-targets --exclude kaiki_napi --locked
       - run: cargo check -p kaiki_napi --locked
 
@@ -106,12 +105,11 @@ jobs:
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
-      - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
-      - name: Install binaryen
+      - name: Build wasm bindings
         run: |
-          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
-          echo "/tmp/binaryen-version_126/bin" >> "$GITHUB_PATH"
-      - run: wasm-pack build wasm/kaiki_diff_wasm --target web
+          cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
+          cargo install wasm-bindgen-cli@0.2.114
+          wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
       - run: cargo clippy --workspace --all-targets --all-features --exclude kaiki_napi -- --deny warnings
       - run: cargo clippy -p kaiki_napi -- --deny warnings
 
@@ -168,8 +166,9 @@ jobs:
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
-      - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
-      - run: wasm-pack test --node wasm/kaiki_diff_wasm
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli@0.2.114
+      - run: cargo test --target wasm32-unknown-unknown -p kaiki_diff_wasm
 
   doc:
     name: Documentation
@@ -182,12 +181,11 @@ jobs:
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
-      - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
-      - name: Install binaryen
+      - name: Build wasm bindings
         run: |
-          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
-          echo "/tmp/binaryen-version_126/bin" >> "$GITHUB_PATH"
-      - run: wasm-pack build wasm/kaiki_diff_wasm --target web
+          cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
+          cargo install wasm-bindgen-cli@0.2.114
+          wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
       - run: cargo doc --no-deps --document-private-items
         env:
           RUSTDOCFLAGS: "-D warnings"
