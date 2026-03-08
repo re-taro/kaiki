@@ -65,6 +65,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
+      - run: corepack enable
       - uses: dtolnay/rust-toolchain@1.93.1
         with:
           targets: ${{ matrix.target }}
@@ -95,7 +96,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: napi/kaiki
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build napi
         working-directory: napi/kaiki
@@ -105,7 +106,7 @@ jobs:
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
           BUILD_TARGET: ${{ matrix.target }}
-        run: npx napi build --platform --release --target "$BUILD_TARGET"
+        run: pnpm exec napi build --platform --release --target "$BUILD_TARGET"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -128,10 +129,11 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      - run: corepack enable
 
       - name: Install dependencies
         working-directory: napi/kaiki
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -141,11 +143,11 @@ jobs:
 
       - name: Move artifacts
         working-directory: napi/kaiki
-        run: npx napi artifacts
+        run: pnpm exec napi artifacts
 
       - name: Prepublish
         working-directory: napi/kaiki
-        run: npx napi prepublish -t npm
+        run: pnpm exec napi prepublish -t npm
 
       - name: Publish platform packages
         working-directory: napi/kaiki
@@ -156,7 +158,7 @@ jobs:
           for dir in npm/*/; do
             if [ -f "$dir/package.json" ]; then
               echo "Publishing $(jq -r .name "$dir/package.json")..."
-              npm publish "$dir" --provenance --access public
+              pnpm publish "$dir" --provenance --access public --no-git-checks
             fi
           done
 
@@ -171,7 +173,7 @@ jobs:
             pkg.version = process.env.VERSION;
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-          npm publish --provenance --access public
+          pnpm publish --provenance --access public --no-git-checks
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2

@@ -47,6 +47,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      - run: corepack enable
       - uses: dtolnay/rust-toolchain@1.93.1
         with:
           targets: wasm32-unknown-unknown
@@ -85,7 +86,7 @@ jobs:
         working-directory: wasm/kaiki_diff_wasm/pkg
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        run: pnpm publish --provenance --access public --no-git-checks
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2

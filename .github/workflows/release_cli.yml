@@ -186,6 +186,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      - run: corepack enable
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -201,7 +202,7 @@ jobs:
           for dir in artifacts/*/; do
             if [ -f "$dir/package.json" ]; then
               echo "Publishing $(jq -r .name "$dir/package.json")..."
-              npm publish "$dir" --provenance --access public
+              pnpm publish "$dir" --provenance --access public --no-git-checks
             fi
           done
 
@@ -223,7 +224,7 @@ jobs:
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
 
-          npm publish --provenance --access public
+          pnpm publish --provenance --access public --no-git-checks
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
