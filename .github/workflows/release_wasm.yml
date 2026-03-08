@@ -54,10 +54,11 @@ jobs:
           curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
           echo "/tmp/binaryen-version_126/bin" >> "$GITHUB_PATH"
 
+      - uses: cargo-bins/cargo-binstall@main
       - name: Build wasm
         run: |
+          cargo binstall --no-confirm wasm-bindgen-cli@0.2.114
           cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
-          cargo install wasm-bindgen-cli@0.2.114
           wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
           wasm-opt --all-features -O -o wasm/kaiki_diff_wasm/pkg/kaiki_diff_wasm_bg.wasm wasm/kaiki_diff_wasm/pkg/kaiki_diff_wasm_bg.wasm
 

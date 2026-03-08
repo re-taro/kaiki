@@ -85,10 +85,11 @@ jobs:
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
+      - uses: cargo-bins/cargo-binstall@main
       - name: Build wasm bindings
         run: |
+          cargo binstall --no-confirm wasm-bindgen-cli@0.2.114
           cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
-          cargo install wasm-bindgen-cli@0.2.114
           wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
       - run: cargo check --workspace --all-features --all-targets --exclude kaiki_napi --locked
       - run: cargo check -p kaiki_napi --locked
@@ -105,10 +106,11 @@ jobs:
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
+      - uses: cargo-bins/cargo-binstall@main
       - name: Build wasm bindings
         run: |
+          cargo binstall --no-confirm wasm-bindgen-cli@0.2.114
           cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
-          cargo install wasm-bindgen-cli@0.2.114
           wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
       - run: cargo clippy --workspace --all-targets --all-features --exclude kaiki_napi -- --deny warnings
       - run: cargo clippy -p kaiki_napi -- --deny warnings
@@ -166,8 +168,8 @@ jobs:
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
-      - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli@0.2.114
+      - uses: cargo-bins/cargo-binstall@main
+      - run: cargo binstall --no-confirm wasm-bindgen-cli@0.2.114
       - run: cargo test --target wasm32-unknown-unknown -p kaiki_diff_wasm
 
   doc:
@@ -181,10 +183,11 @@ jobs:
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
+      - uses: cargo-bins/cargo-binstall@main
       - name: Build wasm bindings
         run: |
+          cargo binstall --no-confirm wasm-bindgen-cli@0.2.114
           cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
-          cargo install wasm-bindgen-cli@0.2.114
           wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
       - run: cargo doc --no-deps --document-private-items
         env:
