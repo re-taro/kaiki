@@ -24,6 +24,8 @@ jobs:
       changed: ${{ steps.check.outputs.changed }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/check-version
         id: check
         with:
@@ -58,6 +60,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -66,7 +70,7 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
-          save-if: ${{ github.ref_name == 'main' }}
+          save-if: false
 
       - name: Install cross-compilation tools (aarch64-linux-gnu)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
@@ -100,7 +104,8 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
-        run: npx napi build --platform --release --target ${{ matrix.target }}
+          BUILD_TARGET: ${{ matrix.target }}
+        run: npx napi build --platform --release --target "$BUILD_TARGET"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -117,6 +122,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -157,11 +164,11 @@ jobs:
         working-directory: napi/kaiki
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.check-version.outputs.version }}
         run: |
-          VERSION="${{ needs.check-version.outputs.version }}"
           node -e "
             const pkg = require('./package.json');
-            pkg.version = '${VERSION}';
+            pkg.version = process.env.VERSION;
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
           npm publish --provenance --access public

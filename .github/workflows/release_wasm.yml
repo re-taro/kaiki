@@ -24,6 +24,8 @@ jobs:
       changed: ${{ steps.check.outputs.changed }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/check-version
         id: check
         with:
@@ -39,6 +41,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -48,7 +52,7 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
-          save-if: ${{ github.ref_name == 'main' }}
+          save-if: false
       - name: Install binaryen
         run: |
           curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
@@ -64,13 +68,14 @@ jobs:
           wasm-opt --all-features -O -o wasm/kaiki_diff_wasm/pkg/kaiki_diff_wasm_bg.wasm wasm/kaiki_diff_wasm/pkg/kaiki_diff_wasm_bg.wasm
 
       - name: Patch package.json
+        env:
+          VERSION: ${{ needs.check-version.outputs.version }}
         run: |
-          VERSION="${{ needs.check-version.outputs.version }}"
           cd wasm/kaiki_diff_wasm/pkg
           node -e "
             const pkg = require('./package.json');
             pkg.name = '@kaiki/diff-wasm';
-            pkg.version = '${VERSION}';
+            pkg.version = process.env.VERSION;
             pkg.license = 'MIT';
             pkg.repository = { type: 'git', url: 'https://github.com/re-taro/kaiki' };
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');

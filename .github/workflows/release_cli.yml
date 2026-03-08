@@ -24,6 +24,8 @@ jobs:
       changed: ${{ steps.check.outputs.changed }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/check-version
         id: check
         with:
@@ -94,38 +96,50 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.93.1
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
-          save-if: ${{ github.ref_name == 'main' }}
+          save-if: false
 
       - name: Install cross
         if: matrix.cross
         run: cargo install cross --locked
 
       - name: Build
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+          USE_CROSS: ${{ matrix.cross }}
         run: |
-          if [ "${{ matrix.cross }}" = "true" ]; then
-            cross build --release --target ${{ matrix.target }} -p kaiki_cli
+          if [ "$USE_CROSS" = "true" ]; then
+            cross build --release --target "$BUILD_TARGET" -p kaiki_cli
           else
-            cargo build --release --target ${{ matrix.target }} -p kaiki_cli
+            cargo build --release --target "$BUILD_TARGET" -p kaiki_cli
           fi
         shell: bash
 
       - name: Generate platform package
         shell: node {0}
+        env:
+          VERSION: ${{ needs.check-version.outputs.version }}
+          NPM_PACKAGE: ${{ matrix.npm-package }}
+          NPM_OS: ${{ matrix.npm-os }}
+          NPM_CPU: ${{ matrix.npm-cpu }}
+          NPM_LIBC: ${{ matrix.npm-libc }}
+          BUILD_TARGET: ${{ matrix.target }}
         run: |
           const fs = require("fs");
           const path = require("path");
 
-          const version = "${{ needs.check-version.outputs.version }}";
-          const npmPackage = "${{ matrix.npm-package }}";
-          const npmOs = "${{ matrix.npm-os }}";
-          const npmCpu = "${{ matrix.npm-cpu }}";
-          const npmLibc = "${{ matrix.npm-libc }}";
-          const target = "${{ matrix.target }}";
+          const version = process.env.VERSION;
+          const npmPackage = process.env.NPM_PACKAGE;
+          const npmOs = process.env.NPM_OS;
+          const npmCpu = process.env.NPM_CPU;
+          const npmLibc = process.env.NPM_LIBC;
+          const target = process.env.BUILD_TARGET;
 
           const dir = path.join("staging", npmPackage.replace("/", "-").replace("@", ""));
           fs.mkdirSync(dir, { recursive: true });
@@ -166,6 +180,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -193,16 +209,16 @@ jobs:
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.check-version.outputs.version }}
         run: |
-          VERSION="${{ needs.check-version.outputs.version }}"
           cd npm/kaiki
 
           # Update optionalDependencies versions
           node -e "
             const pkg = require('./package.json');
-            pkg.version = '${VERSION}';
+            pkg.version = process.env.VERSION;
             for (const dep of Object.keys(pkg.optionalDependencies || {})) {
-              pkg.optionalDependencies[dep] = '${VERSION}';
+              pkg.optionalDependencies[dep] = process.env.VERSION;
             }
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
