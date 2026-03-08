@@ -159,14 +159,11 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22
+      - uses: ./.github/actions/setup
       - uses: dtolnay/rust-toolchain@1.93.1
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
         with:
           save-if: ${{ github.ref_name == 'main' }}
-      - run: corepack enable
       - name: Install dependencies
         working-directory: napi/kaiki
         run: pnpm install --frozen-lockfile
