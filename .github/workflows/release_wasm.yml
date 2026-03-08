@@ -50,6 +50,10 @@ jobs:
         with:
           save-if: ${{ github.ref_name == 'main' }}
       - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
+      - name: Install binaryen
+        run: |
+          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
+          echo "/tmp/binaryen-version_126/bin" >> "$GITHUB_PATH"
 
       - name: Build wasm
         run: wasm-pack build wasm/kaiki_diff_wasm --target web --scope kaiki

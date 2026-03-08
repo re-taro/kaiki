@@ -86,7 +86,11 @@ jobs:
         with:
           save-if: ${{ github.ref_name == 'main' }}
       - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
-      - run: wasm-pack build wasm/kaiki_diff_wasm --target web --dev
+      - name: Install binaryen
+        run: |
+          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
+          echo "/tmp/binaryen-version_126/bin" >> "$GITHUB_PATH"
+      - run: wasm-pack build wasm/kaiki_diff_wasm --target web
       - run: cargo check --workspace --all-features --all-targets --exclude kaiki_napi --locked
       - run: cargo check -p kaiki_napi --locked
 
@@ -103,7 +107,11 @@ jobs:
         with:
           save-if: ${{ github.ref_name == 'main' }}
       - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
-      - run: wasm-pack build wasm/kaiki_diff_wasm --target web --dev
+      - name: Install binaryen
+        run: |
+          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
+          echo "/tmp/binaryen-version_126/bin" >> "$GITHUB_PATH"
+      - run: wasm-pack build wasm/kaiki_diff_wasm --target web
       - run: cargo clippy --workspace --all-targets --all-features --exclude kaiki_napi -- --deny warnings
       - run: cargo clippy -p kaiki_napi -- --deny warnings
 
@@ -175,7 +183,11 @@ jobs:
         with:
           save-if: ${{ github.ref_name == 'main' }}
       - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa # v0.4.0
-      - run: wasm-pack build wasm/kaiki_diff_wasm --target web --dev
+      - name: Install binaryen
+        run: |
+          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz -C /tmp
+          echo "/tmp/binaryen-version_126/bin" >> "$GITHUB_PATH"
+      - run: wasm-pack build wasm/kaiki_diff_wasm --target web
       - run: cargo doc --no-deps --document-private-items
         env:
           RUSTDOCFLAGS: "-D warnings"
