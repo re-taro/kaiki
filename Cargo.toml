@@ -68,7 +68,7 @@ serde_json = "1"
 askama = "0.13"
 
 # Git
-gix = { version = "0.72", default-features = false, features = ["basic", "revision"] }
+gix = { version = "0.80", default-features = false, features = ["basic", "revision"] }
 
 # Cloud storage
 aws-config = { version = "1", features = ["behavior-version-latest"] }

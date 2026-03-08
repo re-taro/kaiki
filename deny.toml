@@ -22,7 +22,9 @@ yanked = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-  # "RUSTSEC-0000-0000",
+  # gix-date TimeBuf::as_str non-utf8 bug; fix requires gix 0.78+ (currently 0.72)
+  # TODO: remove after upgrading gix
+  "RUSTSEC-2025-0140",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
