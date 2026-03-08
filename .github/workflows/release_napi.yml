@@ -7,9 +7,7 @@ on:
     paths:
       - napi/kaiki/package.json
 
-permissions:
-  contents: write
-  id-token: write
+permissions: {}
 
 concurrency:
   group: release_napi
@@ -19,26 +17,17 @@ jobs:
   check-version:
     name: Check Version
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
-      version: ${{ steps.version.outputs.current }}
-      changed: ${{ steps.version.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+      changed: ${{ steps.check.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: ./.github/actions/check-version
+        id: check
         with:
-          fetch-depth: 2
-      - name: Detect version change
-        id: version
-        run: |
-          CURRENT=$(jq -r .version napi/kaiki/package.json)
-          PREVIOUS=$(git show HEAD~1:napi/kaiki/package.json 2>/dev/null | jq -r .version 2>/dev/null || echo "")
-          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
-          if [ "$CURRENT" != "$PREVIOUS" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Version changed: $PREVIOUS -> $CURRENT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Version unchanged: $CURRENT"
-          fi
+          package-json-path: napi/kaiki/package.json
 
   build-napi:
     name: Build napi (${{ matrix.target }})
@@ -65,15 +54,19 @@ jobs:
           - target: aarch64-pc-windows-msvc
             os: windows-latest
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
       - uses: dtolnay/rust-toolchain@1.93.1
         with:
           targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
+        with:
+          save-if: ${{ github.ref_name == 'main' }}
 
       - name: Install cross-compilation tools (aarch64-linux-gnu)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
@@ -109,7 +102,7 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
         run: npx napi build --platform --release --target ${{ matrix.target }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: napi-${{ matrix.target }}
           path: napi/kaiki/*.node
@@ -119,9 +112,12 @@ jobs:
     name: Publish napi
     needs: [check-version, build-napi]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
@@ -130,7 +126,7 @@ jobs:
         working-directory: napi/kaiki
         run: npm install
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: napi/kaiki/artifacts
           pattern: napi-*
@@ -171,7 +167,7 @@ jobs:
           npm publish --provenance --access public
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
         with:
           tag_name: napi-v${{ needs.check-version.outputs.version }}
           name: napi v${{ needs.check-version.outputs.version }}
