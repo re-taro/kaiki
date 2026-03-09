@@ -129,7 +129,7 @@ fn is_nullish(val: &Unknown<'_>) -> Result<bool> {
     hasFailures: boolean;
 }>"
 )]
-#[allow(deprecated)] // JsObject required: Object<'_> does not implement ToNapiValue
+#[expect(deprecated)] // JsObject required: Object<'_> does not implement ToNapiValue
 pub fn run(env: Env, options: Object<'_>) -> Result<napi::JsObject> {
     // 1. Extract and deserialize config
     let config_val: Unknown = options.get_named_property("config")?;
