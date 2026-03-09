@@ -6,28 +6,28 @@
   "types": "index.d.ts",
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "import": "./index.js",
-      "require": "./index.js",
-      "types": "./index.d.ts"
+      "require": "./index.js"
     },
     "./plugin-loader": {
+      "types": "./plugin-loader.d.ts",
       "import": "./plugin-loader.js",
-      "require": "./plugin-loader.js",
-      "types": "./plugin-loader.d.ts"
+      "require": "./plugin-loader.js"
     }
   },
   "napi": {
-    "name": "kaiki-diff",
-    "triples": {
-      "defaults": true,
-      "additional": [
-        "aarch64-apple-darwin",
-        "aarch64-unknown-linux-gnu",
-        "aarch64-unknown-linux-musl",
-        "x86_64-unknown-linux-musl",
-        "aarch64-pc-windows-msvc"
-      ]
-    }
+    "binaryName": "kaiki-diff",
+    "targets": [
+      "x86_64-apple-darwin",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu",
+      "aarch64-apple-darwin",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-linux-musl",
+      "x86_64-unknown-linux-musl",
+      "aarch64-pc-windows-msvc"
+    ]
   },
   "license": "MIT",
   "repository": {
@@ -41,8 +41,9 @@
     "plugin-loader.d.ts"
   ],
   "devDependencies": {
-    "@napi-rs/cli": "^2",
-    "@types/node": "^22",
+    "@napi-rs/cli": "3.5.1",
+    "@types/node": "25.3.5",
+    "@types/pngjs": "6.0.5",
     "pngjs": "7.0.0",
     "typescript": "^5",
     "vitest": "4.0.18"
@@ -55,5 +56,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "bench": "vitest bench"
-  }
+  },
+  "packageManager": "pnpm@10.31.0+sha512.e3927388bfaa8078ceb79b748ffc1e8274e84d75163e67bc22e06c0d3aed43dd153151cbf11d7f8301ff4acb98c68bdc5cadf6989532801ffafe3b3e4a63c268"
 }

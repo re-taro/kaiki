@@ -36,14 +36,14 @@ pub struct JsPublishResult {
 /// Implements `StorageDyn` directly (not via the `Storage` blanket impl)
 /// because `Storage` uses `impl Future` which is not object-safe.
 pub struct JsStorage {
-    fetch_fn: ThreadsafeFunction<JsFetchArgs>,
-    publish_fn: ThreadsafeFunction<JsPublishArgs>,
+    fetch_fn: ThreadsafeFunction<JsFetchArgs, Promise<()>>,
+    publish_fn: ThreadsafeFunction<JsPublishArgs, Promise<JsPublishResult>>,
 }
 
 impl JsStorage {
     pub fn new(
-        fetch_fn: ThreadsafeFunction<JsFetchArgs>,
-        publish_fn: ThreadsafeFunction<JsPublishArgs>,
+        fetch_fn: ThreadsafeFunction<JsFetchArgs, Promise<()>>,
+        publish_fn: ThreadsafeFunction<JsPublishArgs, Promise<JsPublishResult>>,
     ) -> Self {
         Self { fetch_fn, publish_fn }
     }

@@ -7,9 +7,7 @@ on:
     paths:
       - npm/kaiki/package.json
 
-permissions:
-  contents: write
-  id-token: write
+permissions: {}
 
 concurrency:
   group: release_cli
@@ -19,26 +17,19 @@ jobs:
   check-version:
     name: Check Version
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
-      version: ${{ steps.version.outputs.current }}
-      changed: ${{ steps.version.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+      changed: ${{ steps.check.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          fetch-depth: 2
-      - name: Detect version change
-        id: version
-        run: |
-          CURRENT=$(jq -r .version npm/kaiki/package.json)
-          PREVIOUS=$(git show HEAD~1:npm/kaiki/package.json 2>/dev/null | jq -r .version 2>/dev/null || echo "")
-          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
-          if [ "$CURRENT" != "$PREVIOUS" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Version changed: $PREVIOUS -> $CURRENT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Version unchanged: $CURRENT"
-          fi
+          persist-credentials: false
+      - uses: ./.github/actions/check-version
+        id: check
+        with:
+          package-json-path: npm/kaiki/package.json
 
   build-cli:
     name: Build CLI (${{ matrix.target }})
@@ -101,38 +92,54 @@ jobs:
             npm-cpu: arm64
             cross: false
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.93.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
         with:
           targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+        with:
+          save-if: false
 
       - name: Install cross
         if: matrix.cross
         run: cargo install cross --locked
 
       - name: Build
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+          USE_CROSS: ${{ matrix.cross }}
         run: |
-          if [ "${{ matrix.cross }}" = "true" ]; then
-            cross build --release --target ${{ matrix.target }} -p kaiki_cli
+          if [ "$USE_CROSS" = "true" ]; then
+            cross build --release --target "$BUILD_TARGET" -p kaiki_cli
           else
-            cargo build --release --target ${{ matrix.target }} -p kaiki_cli
+            cargo build --release --target "$BUILD_TARGET" -p kaiki_cli
           fi
         shell: bash
 
       - name: Generate platform package
         shell: node {0}
+        env:
+          VERSION: ${{ needs.check-version.outputs.version }}
+          NPM_PACKAGE: ${{ matrix.npm-package }}
+          NPM_OS: ${{ matrix.npm-os }}
+          NPM_CPU: ${{ matrix.npm-cpu }}
+          NPM_LIBC: ${{ matrix.npm-libc }}
+          BUILD_TARGET: ${{ matrix.target }}
         run: |
           const fs = require("fs");
           const path = require("path");
 
-          const version = "${{ needs.check-version.outputs.version }}";
-          const npmPackage = "${{ matrix.npm-package }}";
-          const npmOs = "${{ matrix.npm-os }}";
-          const npmCpu = "${{ matrix.npm-cpu }}";
-          const npmLibc = "${{ matrix.npm-libc }}";
-          const target = "${{ matrix.target }}";
+          const version = process.env.VERSION;
+          const npmPackage = process.env.NPM_PACKAGE;
+          const npmOs = process.env.NPM_OS;
+          const npmCpu = process.env.NPM_CPU;
+          const npmLibc = process.env.NPM_LIBC;
+          const target = process.env.BUILD_TARGET;
 
           const dir = path.join("staging", npmPackage.replace("/", "-").replace("@", ""));
           fs.mkdirSync(dir, { recursive: true });
@@ -158,7 +165,7 @@ jobs:
 
           fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify(pkg, null, 2) + "\n");
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: cli-${{ matrix.target }}
           path: staging/
@@ -168,14 +175,19 @@ jobs:
     name: Publish CLI
     needs: [check-version, build-cli]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          node-version: 22
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
           pattern: cli-*
@@ -189,7 +201,7 @@ jobs:
           for dir in artifacts/*/; do
             if [ -f "$dir/package.json" ]; then
               echo "Publishing $(jq -r .name "$dir/package.json")..."
-              npm publish "$dir" --provenance --access public
+              pnpm publish "$dir" --provenance --access public --no-git-checks
             fi
           done
 
@@ -197,24 +209,24 @@ jobs:
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.check-version.outputs.version }}
         run: |
-          VERSION="${{ needs.check-version.outputs.version }}"
           cd npm/kaiki
 
           # Update optionalDependencies versions
           node -e "
             const pkg = require('./package.json');
-            pkg.version = '${VERSION}';
+            pkg.version = process.env.VERSION;
             for (const dep of Object.keys(pkg.optionalDependencies || {})) {
-              pkg.optionalDependencies[dep] = '${VERSION}';
+              pkg.optionalDependencies[dep] = process.env.VERSION;
             }
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
 
-          npm publish --provenance --access public
+          pnpm publish --provenance --access public --no-git-checks
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           tag_name: cli-v${{ needs.check-version.outputs.version }}
           name: CLI v${{ needs.check-version.outputs.version }}

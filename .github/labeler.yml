@@ -1,0 +1,43 @@
+A-diff:
+  - changed-files:
+      - any-glob-to-any-file: "crates/kaiki_diff/**"
+
+A-config:
+  - changed-files:
+      - any-glob-to-any-file: "crates/kaiki_config/**"
+
+A-report:
+  - changed-files:
+      - any-glob-to-any-file: "crates/kaiki_report/**"
+
+A-git:
+  - changed-files:
+      - any-glob-to-any-file: "crates/kaiki_git/**"
+
+A-storage:
+  - changed-files:
+      - any-glob-to-any-file: "crates/kaiki_storage/**"
+
+A-notify:
+  - changed-files:
+      - any-glob-to-any-file: "crates/kaiki_notify/**"
+
+A-core:
+  - changed-files:
+      - any-glob-to-any-file: "crates/kaiki_core/**"
+
+A-cli:
+  - changed-files:
+      - any-glob-to-any-file: "apps/kaiki_cli/**"
+
+A-napi:
+  - changed-files:
+      - any-glob-to-any-file: "napi/**"
+
+A-wasm:
+  - changed-files:
+      - any-glob-to-any-file: "wasm/**"
+
+A-ci:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"

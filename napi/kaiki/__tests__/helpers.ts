@@ -127,9 +127,6 @@ export function mockKeyGenerator(
 /**
  * Create a publisher mock.
  *
- * napi TSFN uses error-first callback convention: `callback(err, value)`.
- * The first arg is always `null` (no error), the second is the actual data.
- *
  * `fetch` copies `expectedImages` into `destDir` (simulating storage download).
  * `publish` records the call and returns a reportUrl.
  */
@@ -187,7 +184,6 @@ export function mockNotifier() {
   let calls: NotifyCallParams[] = [];
   return {
     mock: {
-      // napi TSFN error-first callback: (err, params)
       notify: async (_err: unknown, params: NotifyCallParams) => {
         calls.push(params);
       },

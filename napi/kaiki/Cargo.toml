@@ -24,7 +24,7 @@ kaiki_git = { workspace = true }
 kaiki_notify = { workspace = true }
 kaiki_report = { workspace = true }
 kaiki_storage = { workspace = true }
-napi = { version = "2", features = ["async", "serde-json", "napi4"] }
+napi = { workspace = true }
 napi-derive = { workspace = true }
 serde_json = { workspace = true }
 

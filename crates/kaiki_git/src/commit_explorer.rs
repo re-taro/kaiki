@@ -32,8 +32,7 @@ impl GitHashKeygen {
         // Get the current branch name (before peel mutates head)
         let current_branch = head.referent_name().map(|n| n.as_bstr().to_string());
 
-        let head_commit =
-            head.peel_to_commit_in_place().map_err(|e| GitError::Git(e.to_string()))?;
+        let head_commit = head.peel_to_commit().map_err(|e| GitError::Git(e.to_string()))?;
 
         tracing::debug!(
             branch = ?current_branch,
@@ -86,7 +85,7 @@ impl GitHashKeygen {
     fn get_head_hash(&self) -> Result<String, GitError> {
         let repo = gix::open(&self.repo_path).map_err(|e| GitError::Git(e.to_string()))?;
         let mut head = repo.head().map_err(|e| GitError::Git(e.to_string()))?;
-        let commit = head.peel_to_commit_in_place().map_err(|e| GitError::Git(e.to_string()))?;
+        let commit = head.peel_to_commit().map_err(|e| GitError::Git(e.to_string()))?;
         Ok(commit.id.to_string())
     }
 }
