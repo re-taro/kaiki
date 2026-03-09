@@ -1,4 +1,4 @@
-#![allow(clippy::print_stdout, clippy::print_stderr)]
+#![allow(clippy::print_stdout, clippy::print_stderr, clippy::allow_attributes)]
 
 mod adapters;
 
@@ -129,7 +129,7 @@ fn is_nullish(val: &Unknown<'_>) -> Result<bool> {
     hasFailures: boolean;
 }>"
 )]
-#[expect(deprecated)] // JsObject required: Object<'_> does not implement ToNapiValue
+#[allow(deprecated)] // JsObject required: Object<'_> does not implement ToNapiValue
 pub fn run(env: Env, options: Object<'_>) -> Result<napi::JsObject> {
     // 1. Extract and deserialize config
     let config_val: Unknown = options.get_named_property("config")?;

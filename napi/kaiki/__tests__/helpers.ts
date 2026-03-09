@@ -142,7 +142,7 @@ export function mockPublisher(
 
   return {
     mock: {
-      fetch: async (args: { key: string; destDir: string }) => {
+      fetch: async (_err: unknown, args: { key: string; destDir: string }) => {
         fetchCalls.push(args);
         if (expectedImages) {
           fs.mkdirSync(args.destDir, { recursive: true });
@@ -151,7 +151,7 @@ export function mockPublisher(
           }
         }
       },
-      publish: async (args: { key: string; sourceDir: string }) => {
+      publish: async (_err: unknown, args: { key: string; sourceDir: string }) => {
         publishCalls.push(args);
         // napi Option<String> cannot deserialize JS null; use undefined for None
         return { reportUrl: effectiveReportUrl === null ? undefined : effectiveReportUrl };
@@ -184,7 +184,7 @@ export function mockNotifier() {
   let calls: NotifyCallParams[] = [];
   return {
     mock: {
-      notify: async (params: NotifyCallParams) => {
+      notify: async (_err: unknown, params: NotifyCallParams) => {
         calls.push(params);
       },
     },
