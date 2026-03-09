@@ -5,6 +5,13 @@ rules:
         # dtolnay/rust-toolchain uses the tag as the toolchain version selector.
         # SHA pinning is explicitly discouraged by the action author.
         dtolnay/rust-toolchain: any
+  # Release workflows use Swatinem/rust-cache with save-if: false (read-only).
+  # No cache writes occur, so cache poisoning risk is mitigated.
+  cache-poisoning:
+    ignore:
+      - release_cli.yml
+      - release_napi.yml
+      - release_wasm.yml
   # dtolnay/rust-toolchain and softprops/action-gh-release are intentional choices.
   superfluous-actions:
     disable: true
