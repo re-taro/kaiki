@@ -1,4 +1,4 @@
-#![allow(clippy::print_stdout, clippy::print_stderr, clippy::allow_attributes)]
+#![allow(clippy::print_stdout, clippy::print_stderr)]
 
 mod adapters;
 
@@ -7,9 +7,9 @@ use kaiki_config::RegSuitConfiguration;
 use kaiki_core::PipelineResult;
 use kaiki_core::processor::RegProcessor;
 use kaiki_report::ComparisonResult;
+use napi::Env;
 use napi::bindgen_prelude::*;
 use napi::threadsafe_function::ThreadsafeFunction;
-use napi::{Env, NapiValue};
 use napi_derive::napi;
 
 use crate::adapters::key_generator::JsKeyGenerator;
@@ -129,8 +129,7 @@ fn is_nullish(val: &Unknown<'_>) -> Result<bool> {
     hasFailures: boolean;
 }>"
 )]
-#[allow(deprecated)] // JsObject required: Object<'_> does not implement ToNapiValue
-pub fn run(env: Env, options: Object<'_>) -> Result<napi::JsObject> {
+pub fn run(env: Env, options: Object<'_>) -> Result<napi::sys::napi_value> {
     // 1. Extract and deserialize config
     let config_val: Unknown = options.get_named_property("config")?;
     let config_json: serde_json::Value = env.from_js_value(config_val)?;
@@ -197,7 +196,5 @@ pub fn run(env: Env, options: Object<'_>) -> Result<napi::JsObject> {
         }
     });
 
-    // SAFETY: JsObject wraps the same napi_value as Object<'_>.
-    // The value is returned to JS immediately and the runtime manages its lifetime.
-    Ok(unsafe { napi::JsObject::from_raw_unchecked(env.raw(), promise_raw) })
+    Ok(promise_raw)
 }
