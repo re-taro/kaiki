@@ -6,14 +6,14 @@
   "types": "index.d.ts",
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "import": "./index.js",
-      "require": "./index.js",
-      "types": "./index.d.ts"
+      "require": "./index.js"
     },
     "./plugin-loader": {
+      "types": "./plugin-loader.d.ts",
       "import": "./plugin-loader.js",
-      "require": "./plugin-loader.js",
-      "types": "./plugin-loader.d.ts"
+      "require": "./plugin-loader.js"
     }
   },
   "napi": {
@@ -43,6 +43,7 @@
   "devDependencies": {
     "@napi-rs/cli": "3.5.1",
     "@types/node": "25.3.5",
+    "@types/pngjs": "6.0.5",
     "pngjs": "7.0.0",
     "typescript": "^5",
     "vitest": "4.0.18"

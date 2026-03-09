@@ -127,9 +127,6 @@ export function mockKeyGenerator(
 /**
  * Create a publisher mock.
  *
- * napi TSFN uses error-first callback convention: `callback(err, value)`.
- * The first arg is always `null` (no error), the second is the actual data.
- *
  * `fetch` copies `expectedImages` into `destDir` (simulating storage download).
  * `publish` records the call and returns a reportUrl.
  */
@@ -145,7 +142,7 @@ export function mockPublisher(
 
   return {
     mock: {
-      fetch: async (_err: unknown, args: { key: string; destDir: string }) => {
+      fetch: async (args: { key: string; destDir: string }) => {
         fetchCalls.push(args);
         if (expectedImages) {
           fs.mkdirSync(args.destDir, { recursive: true });
@@ -154,7 +151,7 @@ export function mockPublisher(
           }
         }
       },
-      publish: async (_err: unknown, args: { key: string; sourceDir: string }) => {
+      publish: async (args: { key: string; sourceDir: string }) => {
         publishCalls.push(args);
         // napi Option<String> cannot deserialize JS null; use undefined for None
         return { reportUrl: effectiveReportUrl === null ? undefined : effectiveReportUrl };
@@ -187,8 +184,7 @@ export function mockNotifier() {
   let calls: NotifyCallParams[] = [];
   return {
     mock: {
-      // napi TSFN error-first callback: (err, params)
-      notify: async (_err: unknown, params: NotifyCallParams) => {
+      notify: async (params: NotifyCallParams) => {
         calls.push(params);
       },
     },
