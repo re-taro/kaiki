@@ -119,8 +119,8 @@ wasm-bindgen-test = "0.3"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 # NAPI
-napi = { version = "2", features = ["async", "serde-json"] }
-napi-derive = "2"
+napi = { version = "3", features = ["async", "serde-json", "compat-mode"] }
+napi-derive = "3"
 
 # Optimize the hot path (image diff) even in dev builds
 [profile.dev.package.kaiki_diff]

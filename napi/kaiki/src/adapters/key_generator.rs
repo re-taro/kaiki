@@ -9,14 +9,14 @@ use napi::threadsafe_function::ThreadsafeFunction;
 /// to await the JS Promise. This is safe because the caller runs on a
 /// tokio/libuv worker thread, so the JS main thread is not blocked.
 pub struct JsKeyGenerator {
-    get_expected_key_fn: ThreadsafeFunction<()>,
-    get_actual_key_fn: ThreadsafeFunction<()>,
+    get_expected_key_fn: ThreadsafeFunction<(), Promise<Option<String>>>,
+    get_actual_key_fn: ThreadsafeFunction<(), Promise<String>>,
 }
 
 impl JsKeyGenerator {
     pub fn new(
-        get_expected_key_fn: ThreadsafeFunction<()>,
-        get_actual_key_fn: ThreadsafeFunction<()>,
+        get_expected_key_fn: ThreadsafeFunction<(), Promise<Option<String>>>,
+        get_actual_key_fn: ThreadsafeFunction<(), Promise<String>>,
     ) -> Self {
         Self { get_expected_key_fn, get_actual_key_fn }
     }

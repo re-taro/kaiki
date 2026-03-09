@@ -45,11 +45,11 @@ impl JsNotifyParams {
 /// Implements `NotifierDyn` directly (not via the `Notifier` blanket impl)
 /// because `Notifier` uses `impl Future` which is not object-safe.
 pub struct JsNotifier {
-    notify_fn: ThreadsafeFunction<JsNotifyParams>,
+    notify_fn: ThreadsafeFunction<JsNotifyParams, Promise<()>>,
 }
 
 impl JsNotifier {
-    pub fn new(notify_fn: ThreadsafeFunction<JsNotifyParams>) -> Self {
+    pub fn new(notify_fn: ThreadsafeFunction<JsNotifyParams, Promise<()>>) -> Self {
         Self { notify_fn }
     }
 }

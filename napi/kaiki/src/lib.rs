@@ -8,12 +8,13 @@ use kaiki_core::PipelineResult;
 use kaiki_core::processor::RegProcessor;
 use kaiki_report::ComparisonResult;
 use napi::bindgen_prelude::*;
-use napi::{Env, JsFunction, JsObject, JsUnknown, NapiValue};
+use napi::threadsafe_function::ThreadsafeFunction;
+use napi::{Env, NapiValue};
 use napi_derive::napi;
 
 use crate::adapters::key_generator::JsKeyGenerator;
 use crate::adapters::notifier::{JsNotifier, JsNotifyParams};
-use crate::adapters::storage::{JsFetchArgs, JsPublishArgs, JsStorage};
+use crate::adapters::storage::{JsFetchArgs, JsPublishArgs, JsPublishResult, JsStorage};
 
 // ── Result types ────────────────────────────────────────────────────────
 
@@ -72,44 +73,8 @@ impl From<PipelineResult> for JsPipelineResult {
 
 // ── Helper functions ────────────────────────────────────────────────────
 
-/// Extract a named JS function property from an object and convert to ThreadsafeFunction.
-fn extract_tsfn<T: 'static + Send + ToNapiValue>(
-    env: &Env,
-    obj: &JsObject,
-    name: &str,
-) -> Result<napi::threadsafe_function::ThreadsafeFunction<T>> {
-    let func: JsFunction = obj.get_named_property(name)?;
-    env.create_threadsafe_function(
-        &func,
-        0,
-        |ctx: napi::threadsafe_function::ThreadSafeCallContext<T>| {
-            // SAFETY: `to_napi_value` requires raw env and owned value; both come
-            // from the ThreadSafeCallContext which guarantees validity.
-            let val = unsafe { <T as ToNapiValue>::to_napi_value(ctx.env.raw(), ctx.value)? };
-            // SAFETY: `val` was just created from the same env above.
-            Ok(vec![unsafe { JsUnknown::from_raw_unchecked(ctx.env.raw(), val) }])
-        },
-    )
-}
-
-/// Extract a named JS function for zero-arg callbacks (like getExpectedKey/getActualKey).
-fn extract_tsfn_no_args(
-    env: &Env,
-    obj: &JsObject,
-    name: &str,
-) -> Result<napi::threadsafe_function::ThreadsafeFunction<()>> {
-    let func: JsFunction = obj.get_named_property(name)?;
-    env.create_threadsafe_function(
-        &func,
-        0,
-        |_ctx: napi::threadsafe_function::ThreadSafeCallContext<()>| {
-            Ok::<Vec<JsUnknown>, napi::Error>(vec![])
-        },
-    )
-}
-
-/// Check if a JsUnknown value is null or undefined.
-fn is_nullish(val: &JsUnknown) -> Result<bool> {
+/// Check if a JS value is null or undefined.
+fn is_nullish(val: &Unknown<'_>) -> Result<bool> {
     let value_type = val.get_type()?;
     Ok(value_type == napi::ValueType::Null || value_type == napi::ValueType::Undefined)
 }
@@ -164,28 +129,33 @@ fn is_nullish(val: &JsUnknown) -> Result<bool> {
     hasFailures: boolean;
 }>"
 )]
-pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
+#[allow(deprecated)] // JsObject required: Object<'_> does not implement ToNapiValue
+pub fn run(env: Env, options: Object<'_>) -> Result<napi::JsObject> {
     // 1. Extract and deserialize config
-    let config_val: JsUnknown = options.get_named_property("config")?;
-    let config_json: serde_json::Value = env.from_js_value(&config_val)?;
+    let config_val: Unknown = options.get_named_property("config")?;
+    let config_json: serde_json::Value = env.from_js_value(config_val)?;
     let reg_config: RegSuitConfiguration = serde_json::from_value(config_json)
         .map_err(|e| Error::new(Status::InvalidArg, format!("invalid config: {e}")))?;
 
-    // 2. Extract key generator callbacks
-    let kg_obj: JsObject = options.get_named_property("keyGenerator")?;
-    let get_expected_key_fn = extract_tsfn_no_args(&env, &kg_obj, "getExpectedKey")?;
-    let get_actual_key_fn = extract_tsfn_no_args(&env, &kg_obj, "getActualKey")?;
+    // 2. Extract key generator callbacks (ThreadsafeFunctions directly from JS)
+    let kg_obj: Object = options.get_named_property("keyGenerator")?;
+    let get_expected_key_fn: ThreadsafeFunction<(), Promise<Option<String>>> =
+        kg_obj.get_named_property("getExpectedKey")?;
+    let get_actual_key_fn: ThreadsafeFunction<(), Promise<String>> =
+        kg_obj.get_named_property("getActualKey")?;
     let keygen = JsKeyGenerator::new(get_expected_key_fn, get_actual_key_fn);
 
     // 3. Extract publisher callbacks (optional)
     let storage = {
-        let publisher_unknown: JsUnknown = options.get_named_property("publisher")?;
+        let publisher_unknown: Unknown = options.get_named_property("publisher")?;
         if is_nullish(&publisher_unknown)? {
             None
         } else {
-            let pub_obj: JsObject = JsObject::from_unknown(publisher_unknown)?;
-            let fetch_fn = extract_tsfn::<JsFetchArgs>(&env, &pub_obj, "fetch")?;
-            let publish_fn = extract_tsfn::<JsPublishArgs>(&env, &pub_obj, "publish")?;
+            let pub_obj = Object::from_unknown(publisher_unknown)?;
+            let fetch_fn: ThreadsafeFunction<JsFetchArgs, Promise<()>> =
+                pub_obj.get_named_property("fetch")?;
+            let publish_fn: ThreadsafeFunction<JsPublishArgs, Promise<JsPublishResult>> =
+                pub_obj.get_named_property("publish")?;
             Some(Box::new(JsStorage::new(fetch_fn, publish_fn))
                 as Box<dyn kaiki_core::processor::StorageDyn>)
         }
@@ -193,13 +163,14 @@ pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
 
     // 4. Extract notifier callbacks (optional)
     let mut notifiers: Vec<Box<dyn kaiki_core::processor::NotifierDyn>> = Vec::new();
-    let notifiers_unknown: JsUnknown = options.get_named_property("notifiers")?;
+    let notifiers_unknown: Unknown = options.get_named_property("notifiers")?;
     if !is_nullish(&notifiers_unknown)? {
-        let notifiers_arr = JsObject::from_unknown(notifiers_unknown)?;
+        let notifiers_arr = Object::from_unknown(notifiers_unknown)?;
         let length = notifiers_arr.get_array_length()?;
         for i in 0..length {
-            let notifier_obj: JsObject = notifiers_arr.get_element(i)?;
-            let notify_fn = extract_tsfn::<JsNotifyParams>(&env, &notifier_obj, "notify")?;
+            let notifier_obj: Object = notifiers_arr.get_element(i)?;
+            let notify_fn: ThreadsafeFunction<JsNotifyParams, Promise<()>> =
+                notifier_obj.get_named_property("notify")?;
             notifiers.push(Box::new(JsNotifier::new(notify_fn)));
         }
     }
@@ -209,6 +180,7 @@ pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
 
     // 6. Create deferred promise and spawn async work
     let (deferred, promise) = env.create_deferred()?;
+    let promise_raw = promise.raw();
 
     napi::bindgen_prelude::spawn(async move {
         let processor =
@@ -225,5 +197,7 @@ pub fn run(env: Env, options: JsObject) -> Result<JsObject> {
         }
     });
 
-    Ok(promise)
+    // SAFETY: JsObject wraps the same napi_value as Object<'_>.
+    // The value is returned to JS immediately and the runtime manages its lifetime.
+    Ok(unsafe { napi::JsObject::from_raw_unchecked(env.raw(), promise_raw) })
 }
