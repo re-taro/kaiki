@@ -5,14 +5,12 @@
 /// 2. `GITHUB_EVENT_PATH` — GitHub Actions event JSON (`pull_request.number` or `issue.number`)
 /// 3. `GITHUB_REF` — parse `refs/pull/{number}/merge`
 pub fn detect_pr_number() -> Option<u64> {
-    // 1. Direct env var
     if let Ok(val) = std::env::var("REG_SUIT_PR_NUMBER")
         && let Ok(pr) = val.parse()
     {
         return Some(pr);
     }
 
-    // 2. GITHUB_EVENT_PATH
     if let Ok(path) = std::env::var("GITHUB_EVENT_PATH")
         && let Ok(content) = std::fs::read_to_string(&path)
         && let Ok(event) = serde_json::from_str::<serde_json::Value>(&content)
@@ -22,9 +20,7 @@ pub fn detect_pr_number() -> Option<u64> {
         return Some(pr);
     }
 
-    // 3. GITHUB_REF
     if let Ok(gh_ref) = std::env::var("GITHUB_REF") {
-        // refs/pull/123/merge
         let parts: Vec<&str> = gh_ref.split('/').collect();
         if parts.len() >= 3 && parts[1] == "pull" {
             return parts[2].parse().ok();

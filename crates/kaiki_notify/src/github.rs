@@ -52,6 +52,7 @@ pub struct GitHubNotifier<C: GitHubClient> {
 
 /// Production constructor using `HttpGitHubClient`.
 impl GitHubNotifier<HttpGitHubClient> {
+    /// Creates a new GitHub notifier using `GITHUB_TOKEN` from the environment.
     pub fn new(config: GitHubNotifyConfig) -> Result<Self, NotifyError> {
         let token = std::env::var("GITHUB_TOKEN")
             .map_err(|_| NotifyError::Config("GITHUB_TOKEN environment variable not set".into()))?;
@@ -86,17 +87,14 @@ impl<C: GitHubClient> GitHubNotifier<C> {
 
         match self.config.pr_comment_behavior.as_str() {
             "once" => {
-                // Only post if no existing comment
                 if self.find_existing_comment(pr_number).await?.is_none() {
                     self.client.create_issue_comment(owner, repo, pr_number, body).await?;
                 }
             }
             "new" => {
-                // Always create new comment
                 self.client.create_issue_comment(owner, repo, pr_number, body).await?;
             }
             _ => {
-                // "default" - update existing or create new
                 if let Some(comment_id) = self.find_existing_comment(pr_number).await? {
                     self.client.update_issue_comment(owner, repo, comment_id, body).await?;
                 } else {
@@ -131,7 +129,6 @@ impl<C: GitHubClient> Notifier for GitHubNotifier<C> {
     async fn notify(&self, params: &NotifyParams) -> Result<(), NotifyError> {
         let has_changes = params.comparison.has_changes();
 
-        // Set commit status
         if self.config.set_commit_status {
             let owner = self.owner()?;
             let repo = self.repo()?;
@@ -147,7 +144,6 @@ impl<C: GitHubClient> Notifier for GitHubNotifier<C> {
             self.client.create_commit_status(owner, repo, &params.current_sha, &payload).await?;
         }
 
-        // Post PR comment
         if self.config.pr_comment
             && has_changes
             && let Some(pr_number) = params.pr_number

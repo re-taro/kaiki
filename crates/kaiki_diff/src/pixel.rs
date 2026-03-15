@@ -22,8 +22,6 @@ const PHI: f64 = 1.618033988749895;
 /// Compute the YIQ color delta between two pixels.
 /// `k` is the byte offset into img1's RGBA data, `m` is the byte offset into img2's RGBA data.
 /// If `y_only` is true, returns only the Y (brightness) component.
-///
-/// This is a direct port of pixelmatch's `colorDelta` function.
 #[inline]
 pub fn color_delta(img1: &[u8], img2: &[u8], k: usize, m: usize, y_only: bool) -> f64 {
     let px1 = &img1[k..k + 4];
@@ -43,14 +41,11 @@ pub fn color_delta(img1: &[u8], img2: &[u8], k: usize, m: usize, y_only: bool) -
     let mut db = b1 - b2;
     let da = a1 - a2;
 
-    // Fast path: all components are equal
     if dr == 0.0 && dg == 0.0 && db == 0.0 && da == 0.0 {
         return 0.0;
     }
 
-    // If either pixel has alpha < 255, blend with background pattern
     if a1 < 255.0 || a2 < 255.0 {
-        // Background pattern (pixelmatch uses byte offset k for the pattern)
         let rb = 48.0 + 159.0 * f64::from((k % 2) as u8);
         let gb = 48.0 + 159.0 * f64::from(((k as f64 / PHI).floor() as usize % 2) as u8);
         let bb = 48.0 + 159.0 * f64::from(((k as f64 / (1.0 + PHI)).floor() as usize % 2) as u8);
@@ -71,7 +66,6 @@ pub fn color_delta(img1: &[u8], img2: &[u8], k: usize, m: usize, y_only: bool) -
 
     let delta = DELTA_Y * y * y + DELTA_I * i * i + DELTA_Q * q * q;
 
-    // Encode whether the pixel lightens or darkens in the sign
     if y > 0.0 { -delta } else { delta }
 }
 

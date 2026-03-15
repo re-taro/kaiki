@@ -2,6 +2,7 @@ pub mod commit_explorer;
 
 use thiserror::Error;
 
+/// Errors that can occur in git operations.
 #[derive(Debug, Error)]
 pub enum GitError {
     #[error("git error: {0}")]

@@ -19,7 +19,6 @@ pub struct JsNotifyParams {
     pub passed_items: Vec<String>,
     pub report_url: Option<String>,
     pub current_sha: String,
-    /// napi uses i64 for integer types.
     pub pr_number: Option<i64>,
 }
 
@@ -41,9 +40,6 @@ impl JsNotifyParams {
 }
 
 /// A Notifier backend backed by a JS callback function via ThreadsafeFunction.
-///
-/// Implements `NotifierDyn` directly (not via the `Notifier` blanket impl)
-/// because `Notifier` uses `impl Future` which is not object-safe.
 pub struct JsNotifier {
     notify_fn: ThreadsafeFunction<JsNotifyParams, Promise<()>>,
 }

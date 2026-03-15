@@ -11,6 +11,7 @@ pub struct GitHashKeygen {
 }
 
 impl GitHashKeygen {
+    /// Creates a new key generator for the given repository path.
     pub fn new(repo_path: &Path) -> Result<Self, GitError> {
         if !repo_path.join(".git").exists() && !repo_path.is_dir() {
             return Err(GitError::RepoNotFound(repo_path.display().to_string()));
@@ -18,19 +19,12 @@ impl GitHashKeygen {
         Ok(Self { repo_path: repo_path.to_path_buf() })
     }
 
-    /// Find a base commit by exploring the commit graph.
-    ///
-    /// Algorithm:
-    /// 1. Get current branch name
-    /// 2. Build commit graph from `git log -n 300 --graph`
-    /// 3. Find commits reachable from other branches
-    /// 4. Use merge-base to identify fork point
+    /// Walks up to 300 first-parent commits to find a fork point shared with another branch.
     fn find_base_commit(&self) -> Result<Option<String>, GitError> {
         let repo = gix::open(&self.repo_path).map_err(|e| GitError::Git(e.to_string()))?;
 
         let mut head = repo.head().map_err(|e| GitError::Git(e.to_string()))?;
 
-        // Get the current branch name (before peel mutates head)
         let current_branch = head.referent_name().map(|n| n.as_bstr().to_string());
 
         let head_commit = head.peel_to_commit().map_err(|e| GitError::Git(e.to_string()))?;
@@ -41,7 +35,6 @@ impl GitHashKeygen {
             "exploring commit graph"
         );
 
-        // Walk up to 300 commits to find a fork point
         let mut revwalk = head_commit
             .ancestors()
             .first_parent_only()
@@ -51,7 +44,6 @@ impl GitHashKeygen {
         let mut count = 0;
         let max_commits = 300;
 
-        // Collect references to find other branches
         let references: Vec<_> = repo
             .references()
             .map_err(|e| GitError::Git(e.to_string()))?
@@ -72,7 +64,6 @@ impl GitHashKeygen {
 
             let commit_id = info.id;
 
-            // Check if this commit is reachable from any other branch
             for ref_id in &references {
                 if commit_id == ref_id.as_ref() {
                     return Ok(Some(commit_id.to_string()));

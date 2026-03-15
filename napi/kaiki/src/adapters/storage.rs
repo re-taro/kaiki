@@ -32,9 +32,6 @@ pub struct JsPublishResult {
 }
 
 /// A Storage backend backed by JS callback functions via ThreadsafeFunction.
-///
-/// Implements `StorageDyn` directly (not via the `Storage` blanket impl)
-/// because `Storage` uses `impl Future` which is not object-safe.
 pub struct JsStorage {
     fetch_fn: ThreadsafeFunction<JsFetchArgs, Promise<()>>,
     publish_fn: ThreadsafeFunction<JsPublishArgs, Promise<JsPublishResult>>,

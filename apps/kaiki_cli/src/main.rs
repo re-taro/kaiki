@@ -133,7 +133,6 @@ async fn run_publish(
     let key = processor.get_actual_key()?;
     let _report_url = processor.publish(&key).await?;
     if notify {
-        // Would need comparison result; for now just return
         tracing::info!("notification would be sent here");
     }
     Ok(false)
@@ -145,7 +144,6 @@ async fn build_processor(
 ) -> Result<kaiki_core::processor::RegProcessor, CliError> {
     let working_dir = PathBuf::from(&config.core.working_dir);
 
-    // Resolve keygen from plugin config
     let keygen: Box<dyn kaiki_git::KeyGenerator> =
         if config.plugins.contains_key("reg-keygen-git-hash-plugin") {
             Box::new(kaiki_git::commit_explorer::GitHashKeygen::new(&PathBuf::from("."))?
@@ -155,11 +153,9 @@ async fn build_processor(
                 serde_json::from_value(val.clone())?;
             Box::new(kaiki_git::SimpleKeygen { expected_key: keygen_config.expected_key })
         } else {
-            // Default to git hash
             Box::new(kaiki_git::commit_explorer::GitHashKeygen::new(&PathBuf::from("."))?)
         };
 
-    // Resolve storage and notifiers (skip if dry_run)
     let mut storage: Option<Box<dyn kaiki_core::processor::StorageDyn>> = None;
     let mut notifiers: Vec<Box<dyn kaiki_core::processor::NotifierDyn>> = Vec::new();
 

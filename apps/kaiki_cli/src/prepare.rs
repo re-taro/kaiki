@@ -6,6 +6,7 @@ use kaiki_config::{
 
 use crate::error::CliError;
 
+/// Validates the configuration and prepares the working directory.
 pub fn run_prepare(config_path: &Path) -> Result<bool, CliError> {
     let config = kaiki_config::load_config(config_path)?;
     validate_config(&config)?;

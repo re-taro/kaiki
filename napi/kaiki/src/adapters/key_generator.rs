@@ -6,8 +6,7 @@ use napi::threadsafe_function::ThreadsafeFunction;
 ///
 /// `get_expected_key` and `get_actual_key` are JS async functions.
 /// Since `KeyGenerator` is a sync trait, we use `futures::executor::block_on`
-/// to await the JS Promise. This is safe because the caller runs on a
-/// tokio/libuv worker thread, so the JS main thread is not blocked.
+/// to await the JS Promise.
 pub struct JsKeyGenerator {
     get_expected_key_fn: ThreadsafeFunction<(), Promise<Option<String>>>,
     get_actual_key_fn: ThreadsafeFunction<(), Promise<String>>,
@@ -33,7 +32,6 @@ impl KeyGenerator for JsKeyGenerator {
             promise.await.map_err(|e| GitError::Git(e.reason.clone()))
         })?;
 
-        // Treat empty string as None (JS may return "" instead of null)
         if result.as_deref() == Some("") { Ok(None) } else { Ok(result) }
     }
 

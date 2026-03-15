@@ -16,8 +16,6 @@ use crate::adapters::key_generator::JsKeyGenerator;
 use crate::adapters::notifier::{JsNotifier, JsNotifyParams};
 use crate::adapters::storage::{JsFetchArgs, JsPublishArgs, JsPublishResult, JsStorage};
 
-// ── Result types ────────────────────────────────────────────────────────
-
 /// The comparison result returned to JS.
 #[napi(object)]
 pub struct JsComparisonResult {
@@ -71,24 +69,17 @@ impl From<PipelineResult> for JsPipelineResult {
     }
 }
 
-// ── Helper functions ────────────────────────────────────────────────────
-
 /// Check if a JS value is null or undefined.
 fn is_nullish(val: &Unknown<'_>) -> Result<bool> {
     let value_type = val.get_type()?;
     Ok(value_type == napi::ValueType::Null || value_type == napi::ValueType::Undefined)
 }
 
-// ── Main entry point ────────────────────────────────────────────────────
-
 /// Run the kaiki visual regression testing pipeline with JS plugin callbacks.
 ///
 /// This is the main entry point for the napi bindings. The `options` object
 /// contains the config and JS callback functions for key generation, storage,
 /// and notification.
-///
-/// The function manually extracts JS functions from the options object and
-/// converts them to ThreadsafeFunctions that can be called from Rust threads.
 #[napi(
     ts_args_type = "options: {
     config: object;
@@ -130,13 +121,11 @@ fn is_nullish(val: &Unknown<'_>) -> Result<bool> {
 }>"
 )]
 pub fn run(env: Env, options: Object<'_>) -> Result<napi::sys::napi_value> {
-    // 1. Extract and deserialize config
     let config_val: Unknown = options.get_named_property("config")?;
     let config_json: serde_json::Value = env.from_js_value(config_val)?;
     let reg_config: RegSuitConfiguration = serde_json::from_value(config_json)
         .map_err(|e| Error::new(Status::InvalidArg, format!("invalid config: {e}")))?;
 
-    // 2. Extract key generator callbacks (ThreadsafeFunctions directly from JS)
     let kg_obj: Object = options.get_named_property("keyGenerator")?;
     let get_expected_key_fn: ThreadsafeFunction<(), Promise<Option<String>>> =
         kg_obj.get_named_property("getExpectedKey")?;
@@ -144,7 +133,6 @@ pub fn run(env: Env, options: Object<'_>) -> Result<napi::sys::napi_value> {
         kg_obj.get_named_property("getActualKey")?;
     let keygen = JsKeyGenerator::new(get_expected_key_fn, get_actual_key_fn);
 
-    // 3. Extract publisher callbacks (optional)
     let storage = {
         let publisher_unknown: Unknown = options.get_named_property("publisher")?;
         if is_nullish(&publisher_unknown)? {
@@ -160,7 +148,6 @@ pub fn run(env: Env, options: Object<'_>) -> Result<napi::sys::napi_value> {
         }
     };
 
-    // 4. Extract notifier callbacks (optional)
     let mut notifiers: Vec<Box<dyn kaiki_core::processor::NotifierDyn>> = Vec::new();
     let notifiers_unknown: Unknown = options.get_named_property("notifiers")?;
     if !is_nullish(&notifiers_unknown)? {
@@ -174,10 +161,8 @@ pub fn run(env: Env, options: Object<'_>) -> Result<napi::sys::napi_value> {
         }
     }
 
-    // 5. Resolve working directory
     let working_dir = std::path::PathBuf::from(&reg_config.core.working_dir);
 
-    // 6. Create deferred promise and spawn async work
     let (deferred, promise) = env.create_deferred()?;
     let promise_raw = promise.raw();
 

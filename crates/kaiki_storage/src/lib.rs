@@ -5,6 +5,7 @@ use std::path::Path;
 
 use thiserror::Error;
 
+/// Errors that can occur in storage operations.
 #[derive(Debug, Error)]
 pub enum StorageError {
     #[error("I/O error: {0}")]

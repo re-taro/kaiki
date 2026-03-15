@@ -1,7 +1,6 @@
 use crate::pixel;
 
 /// Check if a pixel at (x, y) is antialiased by examining its 3x3 neighborhood.
-/// Direct port of pixelmatch's `antialiased` function.
 #[inline]
 pub fn is_antialiased(img1: &[u8], img2: &[u8], x: u32, y: u32, width: u32, height: u32) -> bool {
     let x0 = x.saturating_sub(1);
@@ -20,7 +19,6 @@ pub fn is_antialiased(img1: &[u8], img2: &[u8], x: u32, y: u32, width: u32, heig
 
     let center_k = ((y * width + x) * 4) as usize;
 
-    // Scan 3x3 neighborhood
     for ny in y0..=y1 {
         for nx in x0..=x1 {
             if nx == x && ny == y {
@@ -29,13 +27,10 @@ pub fn is_antialiased(img1: &[u8], img2: &[u8], x: u32, y: u32, width: u32, heig
 
             let neighbor_k = ((ny * width + nx) * 4) as usize;
 
-            // brightness delta between the center pixel and adjacent one
             let delta = pixel::color_delta(img1, img1, center_k, neighbor_k, true);
 
-            // count the number of equal, darker and brighter adjacent pixels
             if delta == 0.0 {
                 zeroes += 1;
-                // if found more than 2 equal siblings, it's definitely not anti-aliasing
                 if zeroes > 2 {
                     return false;
                 }
@@ -51,13 +46,10 @@ pub fn is_antialiased(img1: &[u8], img2: &[u8], x: u32, y: u32, width: u32, heig
         }
     }
 
-    // if there are no both darker and brighter pixels among siblings, it's not anti-aliasing
     if min_delta == 0.0 || max_delta == 0.0 {
         return false;
     }
 
-    // if either the darkest or the brightest pixel has 3+ equal siblings in both images
-    // (definitely not anti-aliased), this pixel is anti-aliased
     (has_many_siblings(img1, min_x, min_y, width, height)
         && has_many_siblings(img2, min_x, min_y, width, height))
         || (has_many_siblings(img1, max_x, max_y, width, height)
@@ -65,7 +57,6 @@ pub fn is_antialiased(img1: &[u8], img2: &[u8], x: u32, y: u32, width: u32, heig
 }
 
 /// Check if a pixel has 3+ adjacent pixels of the same color (by 32-bit RGBA value).
-/// Direct port of pixelmatch's `hasManySiblings` function.
 #[inline]
 fn has_many_siblings(img: &[u8], x: u32, y: u32, width: u32, height: u32) -> bool {
     let x0 = x.saturating_sub(1);

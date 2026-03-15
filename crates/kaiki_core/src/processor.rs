@@ -87,6 +87,7 @@ impl<T: kaiki_notify::Notifier> NotifierDyn for T {
 use std::future::Future;
 
 impl RegProcessor {
+    /// Creates a new processor with the given configuration and plugin backends.
     pub fn new(
         config: CoreConfig,
         working_dir: PathBuf,
@@ -97,29 +98,24 @@ impl RegProcessor {
         Self { config, working_dir, keygen, storage, notifiers }
     }
 
-    /// Run the full pipeline: get expected key → sync → compare → publish → notify.
+    /// Run the full pipeline: get expected key, sync, compare, publish, notify.
     pub async fn run(&self) -> Result<PipelineResult, CoreError> {
-        // 1. Get expected key
         let expected_key = self.get_expected_key()?;
         tracing::info!(expected_key = ?expected_key, "resolved expected key");
 
-        // 2. Sync expected images
         if let Some(key) = &expected_key {
             self.sync_expected(key).await?;
         }
 
-        // 3. Compare
         let comparison = self.compare()?;
         let has_failures = comparison.has_failures();
 
-        // 4. Publish
         let report_url = if let Ok(key) = self.keygen.get_actual_key() {
             self.publish(&key).await?
         } else {
             None
         };
 
-        // 5. Notify
         let actual_key = self.keygen.get_actual_key().unwrap_or_default();
         let notify_params = NotifyParams {
             comparison: comparison.clone(),
@@ -155,7 +151,6 @@ impl RegProcessor {
         let expected_dir = self.working_dir.join("expected");
         let diff_dir = self.working_dir.join("diff");
 
-        // Copy actual images to working dir
         let actual_work_dir = self.working_dir.join("actual");
         if actual_dir.exists() {
             copy_dir(&actual_dir, &actual_work_dir)?;
@@ -166,7 +161,6 @@ impl RegProcessor {
         let actual_images = find_images(&actual_work_dir);
         let expected_images = find_images(&expected_dir);
 
-        // Categorize images
         let common: Vec<_> = actual_images.intersection(&expected_images).cloned().collect();
         let new_items: Vec<_> = actual_images.difference(&expected_images).cloned().collect();
         let deleted_items: Vec<_> = expected_images.difference(&actual_images).cloned().collect();
@@ -183,16 +177,12 @@ impl RegProcessor {
         let threshold_rate = kaiki_config::effective_threshold_rate(&self.config);
         let threshold_pixel = self.config.threshold_pixel;
 
-        // Build a custom rayon thread pool with configured concurrency
         let concurrency = kaiki_config::effective_concurrency(&self.config) as usize;
         let pool =
             rayon::ThreadPoolBuilder::new().num_threads(concurrency).build().unwrap_or_else(|_| {
                 rayon::ThreadPoolBuilder::new().build().expect("failed to build default rayon pool")
             });
 
-        // Parallel comparison in batches to control peak memory usage.
-        // Each batch processes `concurrency * 4` images, then releases their buffers
-        // before starting the next batch.
         let batch_size = concurrency * 4;
         let mut results: Vec<(CompactString, bool)> = Vec::with_capacity(common.len());
 
@@ -219,7 +209,6 @@ impl RegProcessor {
                                             threshold_rate,
                                         );
 
-                                        // Write diff image
                                         if let Some(diff_image) = result.diff_image {
                                             let diff_path = diff_dir.join(name.as_str());
                                             if let Some(parent) = diff_path.parent() {
@@ -274,7 +263,6 @@ impl RegProcessor {
             diff_dir: "diff".into(),
         };
 
-        // Write reports
         let json_path = self.working_dir.join("out.json");
         kaiki_report::write_json_report(&comparison, &json_path)?;
 

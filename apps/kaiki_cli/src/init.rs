@@ -4,6 +4,7 @@ use dialoguer::{Confirm, Input, MultiSelect, Select};
 
 use crate::error::CliError;
 
+/// Runs the interactive configuration wizard to create regconfig.json.
 pub fn run_init_wizard() -> Result<bool, CliError> {
     if Path::new("regconfig.json").exists() {
         let overwrite = Confirm::new()

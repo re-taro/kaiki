@@ -3,6 +3,7 @@ pub use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// Errors that can occur during report generation.
 #[derive(Debug, Error)]
 pub enum ReportError {
     #[error("failed to write report: {0}")]

@@ -41,6 +41,7 @@ pub struct GcsStorage {
 }
 
 impl GcsStorage {
+    /// Creates a new GCS storage backend from the given plugin configuration.
     pub async fn new(config: GcsPluginConfig) -> Result<Self, StorageError> {
         let gcs_config = ClientConfig::default()
             .with_auth()
@@ -145,7 +146,6 @@ impl crate::Storage for GcsStorage {
 
             let data = std::fs::read(path).map_err(StorageError::Io)?;
 
-            // Gzip compress
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
             encoder.write_all(&data).map_err(|e| StorageError::Compression(Box::new(e)))?;
             let compressed =

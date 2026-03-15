@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+/// Errors that can occur in the CLI.
 #[derive(Debug, Error)]
 pub enum CliError {
     #[error(transparent)]

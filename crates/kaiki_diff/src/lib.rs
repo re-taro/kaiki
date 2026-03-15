@@ -8,6 +8,7 @@ pub use regions::BoundingBox;
 use thiserror::Error;
 use xxhash_rust::xxh3::xxh3_64;
 
+/// RGBA image with pixel data stored as a flat `Vec<u8>` (4 bytes per pixel).
 #[derive(Debug, Clone)]
 pub struct ImageData {
     pub width: u32,
@@ -15,13 +16,20 @@ pub struct ImageData {
     pub data: Vec<u8>,
 }
 
+/// Configuration for pixel-by-pixel image comparison.
 #[derive(Debug, Clone)]
 pub struct CompareOptions {
+    /// YIQ delta threshold (0.0 = exact match, 1.0 = any difference accepted).
     pub matching_threshold: f64,
+    /// When `false`, anti-aliased pixels are detected and shown separately.
     pub enable_antialias: bool,
+    /// RGB color for differing pixels.
     pub diff_color: [u8; 3],
+    /// Optional alternate RGB color when img1 is brighter than img2.
     pub diff_color_alt: Option<[u8; 3]>,
+    /// RGB color for anti-aliased pixels.
     pub aa_color: [u8; 3],
+    /// Blending factor for matching pixels in the diff output (0.0..=1.0).
     pub alpha: f64,
 }
 
@@ -38,17 +46,24 @@ impl Default for CompareOptions {
     }
 }
 
+/// Result of an image comparison.
 #[derive(Debug, Clone)]
 pub struct DiffResult {
+    /// Number of pixels that differ beyond the threshold.
     pub diff_count: u64,
+    /// Total pixel count (based on the larger of the two images).
     pub total_pixels: u64,
     pub width: u32,
     pub height: u32,
+    /// `true` when the input bytes were identical (hash fast-path).
     pub images_are_same: bool,
+    /// Rendered diff image. `None` when `images_are_same` is `true`.
     pub diff_image: Option<ImageData>,
+    /// Per-pixel boolean mask of differing pixels. `None` when `images_are_same` is `true`.
     pub diff_mask: Option<Vec<bool>>,
 }
 
+/// Errors that can occur during image comparison.
 #[derive(Debug, Error)]
 pub enum DiffError {
     #[error("failed to decode image: {0}")]
@@ -57,13 +72,12 @@ pub enum DiffError {
     UnsupportedFormat,
 }
 
-/// Compare two image files from raw bytes with MD5 fast path.
+/// Compare two image files from raw bytes with xxh3 hash fast-path.
 pub fn compare_image_files(
     actual: &[u8],
     expected: &[u8],
     options: &CompareOptions,
 ) -> Result<DiffResult, DiffError> {
-    // Hash fast path: if files are identical, skip pixel comparison
     let actual_hash = xxh3_64(actual);
     let expected_hash = xxh3_64(expected);
 
@@ -115,7 +129,6 @@ pub fn compare_images(
     let height = actual.height.max(expected.height);
     let total_pixels = u64::from(width) * u64::from(height);
 
-    // Use bump allocator for temporary expand buffers
     let bump = bumpalo::Bump::new();
     let actual_expanded = render::expand_image_in_bump(&bump, actual, width, height);
     let expected_expanded = render::expand_image_in_bump(&bump, expected, width, height);
@@ -139,7 +152,6 @@ pub fn compare_images(
         for x in 0..width {
             let pos = ((y * width + x) * 4) as usize;
 
-            // Fast path for identical pixels (pixelmatch compatible)
             if actual_data[pos..pos + 4] == expected_data[pos..pos + 4] {
                 render::draw_pixel_same(&mut diff_pixels, pos, actual_data, alpha);
                 continue;
@@ -159,10 +171,8 @@ pub fn compare_images(
                             height,
                         ))
                 {
-                    // AA pixel
                     render::draw_pixel_aa(&mut diff_pixels, pos, aa_color);
                 } else {
-                    // Different pixel
                     diff_count += 1;
                     diff_mask[(y * width + x) as usize] = true;
                     render::draw_pixel_diff(
@@ -174,7 +184,6 @@ pub fn compare_images(
                     );
                 }
             } else {
-                // Matching pixel - greyscale
                 render::draw_pixel_same(&mut diff_pixels, pos, actual_data, alpha);
             }
         }
