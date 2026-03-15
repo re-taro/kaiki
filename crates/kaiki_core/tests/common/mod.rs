@@ -1,10 +1,15 @@
+#![allow(dead_code)]
+
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use compact_str::CompactString;
 use kaiki_config::CoreConfig;
-use kaiki_core::processor::RegProcessor;
-use kaiki_git::SimpleKeygen;
+use kaiki_core::processor::{NotifierDyn, RegProcessor, StorageDyn};
+use kaiki_git::{KeyGenerator, SimpleKeygen};
+use kaiki_notify::NotifyParams;
+use kaiki_storage::PublishResult;
 
 /// Create a solid-color PNG of the given dimensions.
 pub fn make_solid_png(w: u32, h: u32, color: [u8; 4]) -> Vec<u8> {
@@ -104,4 +109,138 @@ pub fn sorted(items: &[CompactString]) -> Vec<CompactString> {
     let mut v = items.to_vec();
     v.sort();
     v
+}
+
+// ---------------------------------------------------------------------------
+// Mock implementations for pipeline tests
+// ---------------------------------------------------------------------------
+
+/// Mock storage backend for testing.
+/// `fetch` writes `expected_images` into the destination directory.
+/// `publish` records calls and returns `report_url`.
+pub struct MockStorage {
+    pub expected_images: Vec<(String, Vec<u8>)>,
+    pub report_url: Option<String>,
+    pub fetch_calls: Mutex<Vec<String>>,
+    pub publish_calls: Mutex<Vec<String>>,
+}
+
+impl MockStorage {
+    pub fn new(expected_images: Vec<(String, Vec<u8>)>, report_url: Option<String>) -> Self {
+        Self {
+            expected_images,
+            report_url,
+            fetch_calls: Mutex::new(Vec::new()),
+            publish_calls: Mutex::new(Vec::new()),
+        }
+    }
+}
+
+impl kaiki_storage::Storage for MockStorage {
+    async fn fetch(&self, key: &str, dest_dir: &Path) -> Result<(), kaiki_storage::StorageError> {
+        self.fetch_calls.lock().unwrap().push(key.to_string());
+        for (name, data) in &self.expected_images {
+            let path = dest_dir.join(name);
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(&path, data)?;
+        }
+        Ok(())
+    }
+
+    async fn publish(
+        &self,
+        key: &str,
+        _source_dir: &Path,
+    ) -> Result<PublishResult, kaiki_storage::StorageError> {
+        self.publish_calls.lock().unwrap().push(key.to_string());
+        Ok(PublishResult { report_url: self.report_url.clone() })
+    }
+}
+
+/// Newtype around `Arc<MockStorage>` to satisfy orphan rules for `StorageDyn`.
+pub struct SharedMockStorage(pub Arc<MockStorage>);
+
+impl StorageDyn for SharedMockStorage {
+    fn fetch_dyn<'a>(
+        &'a self,
+        key: &'a str,
+        dest_dir: &'a Path,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<(), kaiki_storage::StorageError>> + Send + 'a>,
+    > {
+        Box::pin(kaiki_storage::Storage::fetch(&*self.0, key, dest_dir))
+    }
+
+    fn publish_dyn<'a>(
+        &'a self,
+        key: &'a str,
+        source_dir: &'a Path,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<PublishResult, kaiki_storage::StorageError>>
+                + Send
+                + 'a,
+        >,
+    > {
+        Box::pin(kaiki_storage::Storage::publish(&*self.0, key, source_dir))
+    }
+}
+
+/// Mock notifier for testing. Records every `notify` call.
+/// If `fail_with` is set, `notify` returns an error.
+pub struct MockNotifier {
+    pub calls: Mutex<Vec<NotifyParams>>,
+    pub fail_with: Option<String>,
+}
+
+impl MockNotifier {
+    pub fn new() -> Self {
+        Self { calls: Mutex::new(Vec::new()), fail_with: None }
+    }
+
+    pub fn failing(msg: &str) -> Self {
+        Self { calls: Mutex::new(Vec::new()), fail_with: Some(msg.to_string()) }
+    }
+}
+
+impl kaiki_notify::Notifier for MockNotifier {
+    async fn notify(&self, params: &NotifyParams) -> Result<(), kaiki_notify::NotifyError> {
+        self.calls.lock().unwrap().push(params.clone());
+        if let Some(msg) = &self.fail_with {
+            return Err(kaiki_notify::NotifyError::Failed(msg.clone()));
+        }
+        Ok(())
+    }
+}
+
+/// Newtype around `Arc<MockNotifier>` to satisfy orphan rules for `NotifierDyn`.
+pub struct SharedMockNotifier(pub Arc<MockNotifier>);
+
+impl NotifierDyn for SharedMockNotifier {
+    fn notify_dyn<'a>(
+        &'a self,
+        params: &'a NotifyParams,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<(), kaiki_notify::NotifyError>> + Send + 'a>,
+    > {
+        Box::pin(kaiki_notify::Notifier::notify(&*self.0, params))
+    }
+}
+
+/// Build a `RegProcessor` with injectable keygen, storage, and notifiers.
+pub fn make_pipeline_processor(
+    actual_dir: &Path,
+    working_dir: PathBuf,
+    keygen: Box<dyn KeyGenerator>,
+    storage: Option<Box<dyn StorageDyn>>,
+    notifiers: Vec<Box<dyn NotifierDyn>>,
+) -> RegProcessor {
+    let config = CoreConfig {
+        actual_dir: actual_dir.to_string_lossy().to_string(),
+        concurrency: Some(1),
+        ..CoreConfig::default()
+    };
+    RegProcessor::new(config, working_dir, keygen, storage, notifiers)
 }
