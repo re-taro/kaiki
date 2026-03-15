@@ -2981,6 +2981,7 @@ name = "kaiki_git"
 version = "0.0.1"
 dependencies = [
  "gix",
+ "tempfile",
  "thiserror 2.0.18",
  "tracing",
 ]
