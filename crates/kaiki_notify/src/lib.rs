@@ -5,6 +5,7 @@ pub mod slack;
 use kaiki_report::ComparisonResult;
 use thiserror::Error;
 
+/// Errors that can occur during notification.
 #[derive(Debug, Error)]
 pub enum NotifyError {
     #[error("HTTP request failed: {0}")]

@@ -12,6 +12,7 @@ pub struct IssueComment {
 /// Trait abstracting GitHub REST API operations.
 /// Production: `HttpGitHubClient` (reqwest). Tests: mock implementation.
 pub trait GitHubClient: Send + Sync {
+    /// Creates a commit status on the given SHA.
     fn create_commit_status(
         &self,
         owner: &str,
@@ -20,6 +21,7 @@ pub trait GitHubClient: Send + Sync {
         payload: &serde_json::Value,
     ) -> impl Future<Output = Result<(), NotifyError>> + Send;
 
+    /// Lists all comments on the given issue or pull request.
     fn list_issue_comments(
         &self,
         owner: &str,
@@ -27,6 +29,7 @@ pub trait GitHubClient: Send + Sync {
         issue_number: u64,
     ) -> impl Future<Output = Result<Vec<IssueComment>, NotifyError>> + Send;
 
+    /// Creates a new comment on the given issue or pull request.
     fn create_issue_comment(
         &self,
         owner: &str,
@@ -35,6 +38,7 @@ pub trait GitHubClient: Send + Sync {
         body: &str,
     ) -> impl Future<Output = Result<(), NotifyError>> + Send;
 
+    /// Updates the body of an existing issue comment.
     fn update_issue_comment(
         &self,
         owner: &str,

@@ -14,11 +14,9 @@ pub fn expand_env_vars(input: &str) -> Result<String, ConfigError> {
     while i < chars.len() {
         if chars[i] == '$' {
             if i + 1 < chars.len() && chars[i + 1] == '$' {
-                // $$ → literal $
                 result.push('$');
                 i += 2;
             } else if i + 1 < chars.len() && chars[i + 1] == '{' {
-                // ${VAR} pattern
                 if let Some(end) = chars[i + 2..].iter().position(|&c| c == '}') {
                     let var_name: String = chars[i + 2..i + 2 + end].iter().collect();
                     let value = std::env::var(&var_name)
@@ -32,7 +30,6 @@ pub fn expand_env_vars(input: &str) -> Result<String, ConfigError> {
             } else if i + 1 < chars.len()
                 && (chars[i + 1].is_ascii_alphanumeric() || chars[i + 1] == '_')
             {
-                // $VAR pattern
                 let start = i + 1;
                 let mut end = start;
                 while end < chars.len() && (chars[end].is_ascii_alphanumeric() || chars[end] == '_')

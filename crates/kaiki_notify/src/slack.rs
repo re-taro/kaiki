@@ -67,6 +67,7 @@ pub struct SlackNotifier {
 }
 
 impl SlackNotifier {
+    /// Creates a new Slack notifier with the given configuration.
     pub fn new(config: SlackNotifyConfig) -> Result<Self, NotifyError> {
         let client = reqwest::Client::new();
         Ok(Self { client, config })

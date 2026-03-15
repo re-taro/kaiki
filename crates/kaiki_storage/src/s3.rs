@@ -35,6 +35,7 @@ pub struct S3Storage {
 }
 
 impl S3Storage {
+    /// Creates a new S3 storage backend from the given plugin configuration.
     pub async fn new(config: S3PluginConfig) -> Result<Self, StorageError> {
         let mut aws_config_builder = aws_config::from_env();
 
@@ -167,7 +168,6 @@ impl crate::Storage for S3Storage {
 
             let data = std::fs::read(path).map_err(StorageError::Io)?;
 
-            // Gzip compress
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
             std::io::Write::write_all(&mut encoder, &data)
                 .map_err(|e| StorageError::Compression(Box::new(e)))?;

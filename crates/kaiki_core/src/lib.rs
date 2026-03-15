@@ -4,6 +4,7 @@ pub mod processor;
 
 use thiserror::Error;
 
+/// Errors that can occur in the core pipeline.
 #[derive(Debug, Error)]
 pub enum CoreError {
     #[error("diff error: {0}")]

@@ -6,6 +6,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// Errors that can occur when loading or parsing configuration.
 #[derive(Debug, Error)]
 pub enum ConfigError {
     #[error("failed to read config file: {0}")]
@@ -16,6 +17,7 @@ pub enum ConfigError {
     EnvVar(String),
 }
 
+/// Top-level reg-suit configuration (regconfig.json).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegSuitConfiguration {
@@ -24,6 +26,7 @@ pub struct RegSuitConfiguration {
     pub plugins: HashMap<String, serde_json::Value>,
 }
 
+/// Core configuration options for image comparison.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CoreConfig {
@@ -70,12 +73,14 @@ impl Default for CoreConfig {
     }
 }
 
+/// Configuration for the ximgdiff (WASM-based browser diff) feature.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct XimgdiffConfig {
     pub enabled: Option<bool>,
 }
 
+/// Configuration for the S3 storage plugin.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct S3PluginConfig {
@@ -94,6 +99,7 @@ pub struct S3PluginConfig {
     pub region: Option<String>,
 }
 
+/// Configuration for the GCS storage plugin.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GcsPluginConfig {
@@ -102,6 +108,7 @@ pub struct GcsPluginConfig {
     pub path_prefix: Option<String>,
 }
 
+/// Configuration for the GitHub notification plugin.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitHubNotifyConfig {
@@ -132,12 +139,14 @@ impl Default for GitHubNotifyConfig {
     }
 }
 
+/// Configuration for the Slack notification plugin.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SlackNotifyConfig {
     pub webhook_url: String,
 }
 
+/// Configuration for the simple (static) key generator plugin.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SimpleKeygenConfig {

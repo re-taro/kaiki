@@ -31,7 +31,7 @@ pub fn detect_diff_regions(
 
     fn find(parent: &mut [usize], mut x: usize) -> usize {
         while parent[x] != x {
-            parent[x] = parent[parent[x]]; // path halving
+            parent[x] = parent[parent[x]];
             x = parent[x];
         }
         x
@@ -55,7 +55,6 @@ pub fn detect_diff_regions(
 
     let w = img_width as usize;
 
-    // Merge adjacent diff pixels (8-connectivity)
     for y in 0..img_height as usize {
         for x in 0..w {
             let idx = y * w + x;
@@ -63,21 +62,17 @@ pub fn detect_diff_regions(
                 continue;
             }
 
-            // Check right neighbor
             if x + 1 < w && diff_mask[idx + 1] {
                 union(&mut parent, &mut rank, idx, idx + 1);
             }
-            // Check bottom neighbor
             if y + 1 < img_height as usize {
                 let below = idx + w;
                 if diff_mask[below] {
                     union(&mut parent, &mut rank, idx, below);
                 }
-                // Check bottom-left
                 if x > 0 && diff_mask[below - 1] {
                     union(&mut parent, &mut rank, idx, below - 1);
                 }
-                // Check bottom-right
                 if x + 1 < w && diff_mask[below + 1] {
                     union(&mut parent, &mut rank, idx, below + 1);
                 }
@@ -85,7 +80,6 @@ pub fn detect_diff_regions(
         }
     }
 
-    // Collect bounding boxes per component
     use std::collections::HashMap;
 
     struct ComponentBounds {
@@ -131,7 +125,6 @@ pub fn detect_diff_regions(
         })
         .collect();
 
-    // Sort by position for deterministic output
     boxes.sort_by_key(|b| (b.y, b.x));
     boxes
 }

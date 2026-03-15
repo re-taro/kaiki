@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 
+/// Compare two RGBA pixel buffers and return the diff result.
 #[wasm_bindgen]
 pub fn compare_pixels(
     actual: &[u8],
@@ -27,6 +28,7 @@ pub fn compare_pixels(
     .unwrap_or(JsValue::NULL)
 }
 
+/// Compare two RGBA pixel buffers and return the diff result with bounding box regions.
 #[wasm_bindgen]
 pub fn compare_pixels_with_regions(
     actual: &[u8],
