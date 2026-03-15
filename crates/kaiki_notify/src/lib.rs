@@ -1,4 +1,5 @@
 pub mod github;
+pub mod github_client;
 pub mod slack;
 
 use kaiki_report::ComparisonResult;

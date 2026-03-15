@@ -1,5 +1,6 @@
 use kaiki_config::GitHubNotifyConfig;
 
+use crate::github_client::{GitHubClient, HttpGitHubClient, IssueComment};
 use crate::{Notifier, NotifyError, NotifyParams};
 
 const COMMENT_MARKER: &str = "<!-- reg-suit kaiki -->";
@@ -23,24 +24,46 @@ fn build_commit_status_payload(
     body
 }
 
-/// GitHub notifier using direct REST API calls.
-pub struct GitHubNotifier {
-    client: reqwest::Client,
-    token: String,
+/// Build the PR comment body from notification parameters.
+fn build_comment_body(params: &NotifyParams) -> String {
+    let comp = &params.comparison;
+    let mut body = format!("{COMMENT_MARKER}\n## reg report\n\n");
+
+    body.push_str(&format!(
+        "| | Count |\n|---|---|\n| Changed | {} |\n| New | {} |\n| Deleted | {} |\n| Passed | {} |\n\n",
+        comp.failed_items.len(),
+        comp.new_items.len(),
+        comp.deleted_items.len(),
+        comp.passed_items.len(),
+    ));
+
+    if let Some(ref url) = params.report_url {
+        body.push_str(&format!("[Report]({url})\n"));
+    }
+
+    body
+}
+
+/// GitHub notifier, generic over the HTTP client layer.
+pub struct GitHubNotifier<C: GitHubClient> {
+    client: C,
     config: GitHubNotifyConfig,
 }
 
-impl GitHubNotifier {
+/// Production constructor using `HttpGitHubClient`.
+impl GitHubNotifier<HttpGitHubClient> {
     pub fn new(config: GitHubNotifyConfig) -> Result<Self, NotifyError> {
         let token = std::env::var("GITHUB_TOKEN")
             .map_err(|_| NotifyError::Config("GITHUB_TOKEN environment variable not set".into()))?;
+        let client = HttpGitHubClient::new(token)?;
+        Ok(Self { client, config })
+    }
+}
 
-        let client = reqwest::Client::builder()
-            .user_agent("kaiki")
-            .build()
-            .map_err(|e| NotifyError::Http(e.to_string()))?;
-
-        Ok(Self { client, token, config })
+/// Generic constructor for testing with any `GitHubClient` implementation.
+impl<C: GitHubClient> GitHubNotifier<C> {
+    pub fn with_client(config: GitHubNotifyConfig, client: C) -> Self {
+        Self { client, config }
     }
 
     fn owner(&self) -> Result<&str, NotifyError> {
@@ -57,38 +80,6 @@ impl GitHubNotifier {
             .ok_or_else(|| NotifyError::Config("repository not configured".into()))
     }
 
-    async fn set_commit_status(
-        &self,
-        sha: &str,
-        state: &str,
-        description: &str,
-        target_url: Option<&str>,
-    ) -> Result<(), NotifyError> {
-        let owner = self.owner()?;
-        let repo = self.repo()?;
-        let url = format!("https://api.github.com/repos/{owner}/{repo}/statuses/{sha}");
-
-        let body = build_commit_status_payload(state, description, target_url);
-
-        let resp = self
-            .client
-            .post(&url)
-            .bearer_auth(&self.token)
-            .header("Accept", "application/vnd.github.v3+json")
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| NotifyError::Http(e.to_string()))?;
-
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
-            return Err(NotifyError::Failed(format!("commit status failed ({status}): {text}")));
-        }
-
-        Ok(())
-    }
-
     async fn post_or_update_comment(&self, pr_number: u64, body: &str) -> Result<(), NotifyError> {
         let owner = self.owner()?;
         let repo = self.repo()?;
@@ -97,19 +88,19 @@ impl GitHubNotifier {
             "once" => {
                 // Only post if no existing comment
                 if self.find_existing_comment(pr_number).await?.is_none() {
-                    self.create_comment(owner, repo, pr_number, body).await?;
+                    self.client.create_issue_comment(owner, repo, pr_number, body).await?;
                 }
             }
             "new" => {
                 // Always create new comment
-                self.create_comment(owner, repo, pr_number, body).await?;
+                self.client.create_issue_comment(owner, repo, pr_number, body).await?;
             }
             _ => {
                 // "default" - update existing or create new
                 if let Some(comment_id) = self.find_existing_comment(pr_number).await? {
-                    self.update_comment(owner, repo, comment_id, body).await?;
+                    self.client.update_issue_comment(owner, repo, comment_id, body).await?;
                 } else {
-                    self.create_comment(owner, repo, pr_number, body).await?;
+                    self.client.create_issue_comment(owner, repo, pr_number, body).await?;
                 }
             }
         }
@@ -120,121 +111,30 @@ impl GitHubNotifier {
     async fn find_existing_comment(&self, pr_number: u64) -> Result<Option<u64>, NotifyError> {
         let owner = self.owner()?;
         let repo = self.repo()?;
-        let url =
-            format!("https://api.github.com/repos/{owner}/{repo}/issues/{pr_number}/comments");
 
-        let resp = self
-            .client
-            .get(&url)
-            .bearer_auth(&self.token)
-            .header("Accept", "application/vnd.github.v3+json")
-            .send()
-            .await
-            .map_err(|e| NotifyError::Http(e.to_string()))?;
+        let comments = match self.client.list_issue_comments(owner, repo, pr_number).await {
+            Ok(c) => c,
+            Err(_) => return Ok(None), // best-effort: treat HTTP errors as "no existing comment"
+        };
 
-        if !resp.status().is_success() {
-            return Ok(None);
-        }
-
-        let comments: Vec<serde_json::Value> =
-            resp.json().await.map_err(|e| NotifyError::Http(e.to_string()))?;
-
-        for comment in comments {
-            if let Some(body) = comment["body"].as_str()
-                && body.contains(COMMENT_MARKER)
-                && let Some(id) = comment["id"].as_u64()
-            {
-                return Ok(Some(id));
+        for IssueComment { id, body } in &comments {
+            if body.contains(COMMENT_MARKER) {
+                return Ok(Some(*id));
             }
         }
 
         Ok(None)
     }
-
-    async fn create_comment(
-        &self,
-        owner: &str,
-        repo: &str,
-        pr_number: u64,
-        body: &str,
-    ) -> Result<(), NotifyError> {
-        let url =
-            format!("https://api.github.com/repos/{owner}/{repo}/issues/{pr_number}/comments");
-
-        let resp = self
-            .client
-            .post(&url)
-            .bearer_auth(&self.token)
-            .header("Accept", "application/vnd.github.v3+json")
-            .json(&serde_json::json!({ "body": body }))
-            .send()
-            .await
-            .map_err(|e| NotifyError::Http(e.to_string()))?;
-
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
-            return Err(NotifyError::Failed(format!("create comment failed ({status}): {text}")));
-        }
-
-        Ok(())
-    }
-
-    async fn update_comment(
-        &self,
-        owner: &str,
-        repo: &str,
-        comment_id: u64,
-        body: &str,
-    ) -> Result<(), NotifyError> {
-        let url =
-            format!("https://api.github.com/repos/{owner}/{repo}/issues/comments/{comment_id}");
-
-        let resp = self
-            .client
-            .patch(&url)
-            .bearer_auth(&self.token)
-            .header("Accept", "application/vnd.github.v3+json")
-            .json(&serde_json::json!({ "body": body }))
-            .send()
-            .await
-            .map_err(|e| NotifyError::Http(e.to_string()))?;
-
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
-            return Err(NotifyError::Failed(format!("update comment failed ({status}): {text}")));
-        }
-
-        Ok(())
-    }
-
-    fn build_comment_body(&self, params: &NotifyParams) -> String {
-        let comp = &params.comparison;
-        let mut body = format!("{COMMENT_MARKER}\n## reg report\n\n");
-
-        body.push_str(&format!(
-            "| | Count |\n|---|---|\n| Changed | {} |\n| New | {} |\n| Deleted | {} |\n| Passed | {} |\n\n",
-            comp.failed_items.len(),
-            comp.new_items.len(),
-            comp.deleted_items.len(),
-            comp.passed_items.len(),
-        ));
-
-        if let Some(ref url) = params.report_url {
-            body.push_str(&format!("[Report]({url})\n"));
-        }
-
-        body
-    }
 }
 
-impl Notifier for GitHubNotifier {
+impl<C: GitHubClient> Notifier for GitHubNotifier<C> {
     async fn notify(&self, params: &NotifyParams) -> Result<(), NotifyError> {
         let has_changes = params.comparison.has_changes();
 
         // Set commit status
         if self.config.set_commit_status {
+            let owner = self.owner()?;
+            let repo = self.repo()?;
             let state = if params.comparison.has_failures() { "failure" } else { "success" };
             let description = format!(
                 "changed: {}, new: {}, deleted: {}",
@@ -242,13 +142,11 @@ impl Notifier for GitHubNotifier {
                 params.comparison.new_items.len(),
                 params.comparison.deleted_items.len(),
             );
-            self.set_commit_status(
-                &params.current_sha,
-                state,
-                &description,
-                params.report_url.as_deref(),
-            )
-            .await?;
+            let payload =
+                build_commit_status_payload(state, &description, params.report_url.as_deref());
+            self.client
+                .create_commit_status(owner, repo, &params.current_sha, &payload)
+                .await?;
         }
 
         // Post PR comment
@@ -256,7 +154,7 @@ impl Notifier for GitHubNotifier {
             && has_changes
             && let Some(pr_number) = params.pr_number
         {
-            let body = self.build_comment_body(params);
+            let body = build_comment_body(params);
             self.post_or_update_comment(pr_number, &body).await?;
         }
 
@@ -298,11 +196,8 @@ mod tests {
 
     #[test]
     fn test_build_comment_body_format() {
-        let config = GitHubNotifyConfig::default();
-        let notifier =
-            GitHubNotifier { client: reqwest::Client::new(), token: "fake".to_string(), config };
         let params = sample_params(None);
-        let body = notifier.build_comment_body(&params);
+        let body = build_comment_body(&params);
         assert!(body.contains(COMMENT_MARKER));
         assert!(body.contains("## reg report"));
         assert!(body.contains("Changed | 1"));
@@ -313,11 +208,8 @@ mod tests {
 
     #[test]
     fn test_build_comment_body_with_report_url() {
-        let config = GitHubNotifyConfig::default();
-        let notifier =
-            GitHubNotifier { client: reqwest::Client::new(), token: "fake".to_string(), config };
         let params = sample_params(Some("https://example.com/report".to_string()));
-        let body = notifier.build_comment_body(&params);
+        let body = build_comment_body(&params);
         assert!(body.contains("[Report](https://example.com/report)"));
     }
 
