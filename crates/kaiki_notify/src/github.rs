@@ -144,9 +144,7 @@ impl<C: GitHubClient> Notifier for GitHubNotifier<C> {
             );
             let payload =
                 build_commit_status_payload(state, &description, params.report_url.as_deref());
-            self.client
-                .create_commit_status(owner, repo, &params.current_sha, &payload)
-                .await?;
+            self.client.create_commit_status(owner, repo, &params.current_sha, &payload).await?;
         }
 
         // Post PR comment

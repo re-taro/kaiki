@@ -30,11 +30,7 @@ struct MockGitHubClient {
 
 impl MockGitHubClient {
     fn new(state: Arc<Mutex<MockState>>) -> Self {
-        Self {
-            state,
-            existing_comments: Vec::new(),
-            fail_status: false,
-        }
+        Self { state, existing_comments: Vec::new(), fail_status: false }
     }
 
     fn with_existing_comments(mut self, comments: Vec<IssueComment>) -> Self {
@@ -222,10 +218,8 @@ async fn test_pr_comment_default_creates_new() {
 #[tokio::test]
 async fn test_pr_comment_default_updates_existing() {
     let state = Arc::new(Mutex::new(MockState::default()));
-    let existing = vec![IssueComment {
-        id: 999,
-        body: "<!-- reg-suit kaiki -->\nold report".to_string(),
-    }];
+    let existing =
+        vec![IssueComment { id: 999, body: "<!-- reg-suit kaiki -->\nold report".to_string() }];
     let client = MockGitHubClient::new(Arc::clone(&state)).with_existing_comments(existing);
     let notifier = GitHubNotifier::with_client(make_config("default", false), client);
     let params = make_params(true, true, None);
@@ -241,10 +235,8 @@ async fn test_pr_comment_default_updates_existing() {
 #[tokio::test]
 async fn test_pr_comment_once_skips_if_exists() {
     let state = Arc::new(Mutex::new(MockState::default()));
-    let existing = vec![IssueComment {
-        id: 123,
-        body: "<!-- reg-suit kaiki -->\nprevious".to_string(),
-    }];
+    let existing =
+        vec![IssueComment { id: 123, body: "<!-- reg-suit kaiki -->\nprevious".to_string() }];
     let client = MockGitHubClient::new(Arc::clone(&state)).with_existing_comments(existing);
     let notifier = GitHubNotifier::with_client(make_config("once", false), client);
     let params = make_params(true, true, None);
@@ -259,10 +251,8 @@ async fn test_pr_comment_once_skips_if_exists() {
 #[tokio::test]
 async fn test_pr_comment_new_always_creates() {
     let state = Arc::new(Mutex::new(MockState::default()));
-    let existing = vec![IssueComment {
-        id: 123,
-        body: "<!-- reg-suit kaiki -->\nprevious".to_string(),
-    }];
+    let existing =
+        vec![IssueComment { id: 123, body: "<!-- reg-suit kaiki -->\nprevious".to_string() }];
     let client = MockGitHubClient::new(Arc::clone(&state)).with_existing_comments(existing);
     let notifier = GitHubNotifier::with_client(make_config("new", false), client);
     let params = make_params(true, true, None);

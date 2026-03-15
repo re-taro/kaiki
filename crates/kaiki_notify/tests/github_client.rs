@@ -8,8 +8,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup() -> (MockServer, HttpGitHubClient) {
     let server = MockServer::start().await;
-    let client =
-        HttpGitHubClient::with_base_url("test-token".to_string(), server.uri()).unwrap();
+    let client = HttpGitHubClient::with_base_url("test-token".to_string(), server.uri()).unwrap();
     (server, client)
 }
 
@@ -40,10 +39,7 @@ async fn test_create_commit_status_request() {
         "description": "all good",
         "context": "reg"
     });
-    client
-        .create_commit_status("owner", "repo", "abc123", &payload)
-        .await
-        .unwrap();
+    client.create_commit_status("owner", "repo", "abc123", &payload).await.unwrap();
 }
 
 #[tokio::test]
@@ -109,10 +105,7 @@ async fn test_create_issue_comment_request() {
         .mount(&server)
         .await;
 
-    client
-        .create_issue_comment("owner", "repo", 42, "hello world")
-        .await
-        .unwrap();
+    client.create_issue_comment("owner", "repo", 42, "hello world").await.unwrap();
 }
 
 // ---------------------------------------------------------------------------
@@ -132,8 +125,5 @@ async fn test_update_issue_comment_request() {
         .mount(&server)
         .await;
 
-    client
-        .update_issue_comment("owner", "repo", 999, "updated body")
-        .await
-        .unwrap();
+    client.update_issue_comment("owner", "repo", 999, "updated body").await.unwrap();
 }
