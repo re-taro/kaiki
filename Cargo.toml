@@ -116,6 +116,9 @@ wasm-bindgen = "0.2"
 wasm-bindgen-test = "0.3"
 
 # Testing
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
 wiremock = "0.6"
 
 # Benchmarking
