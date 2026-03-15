@@ -1,61 +1,20 @@
-use std::fs;
-use std::path::PathBuf;
+#[expect(dead_code)]
+mod common;
 
 use compact_str::CompactString;
 use kaiki_config::CoreConfig;
 use kaiki_core::processor::RegProcessor;
 use kaiki_git::SimpleKeygen;
 
-/// Create a minimal 2x2 red PNG in memory.
-fn make_red_png() -> Vec<u8> {
-    let mut buf = Vec::new();
-    let img = image::RgbaImage::from_pixel(2, 2, image::Rgba([255, 0, 0, 255]));
-    {
-        use image::ImageEncoder;
-        let encoder = image::codecs::png::PngEncoder::new(&mut buf);
-        encoder.write_image(img.as_raw(), 2, 2, image::ExtendedColorType::Rgba8).unwrap();
-    }
-    buf
-}
+use common::{make_solid_png, setup_fixture};
 
-/// Create a minimal 2x2 blue PNG in memory.
-fn make_blue_png() -> Vec<u8> {
-    let mut buf = Vec::new();
-    let img = image::RgbaImage::from_pixel(2, 2, image::Rgba([0, 0, 255, 255]));
-    {
-        use image::ImageEncoder;
-        let encoder = image::codecs::png::PngEncoder::new(&mut buf);
-        encoder.write_image(img.as_raw(), 2, 2, image::ExtendedColorType::Rgba8).unwrap();
-    }
-    buf
-}
-
-/// Set up a test fixture: actual + expected dirs with images.
-fn setup_fixture(
-    tmpdir: &std::path::Path,
-    actual_images: &[(&str, &[u8])],
-    expected_images: &[(&str, &[u8])],
-) -> (PathBuf, PathBuf) {
-    let actual_dir = tmpdir.join("actual");
-    let expected_dir = tmpdir.join("working").join("expected");
-
-    fs::create_dir_all(&actual_dir).unwrap();
-    fs::create_dir_all(&expected_dir).unwrap();
-
-    for (name, data) in actual_images {
-        fs::write(actual_dir.join(name), data).unwrap();
-    }
-    for (name, data) in expected_images {
-        fs::write(expected_dir.join(name), data).unwrap();
-    }
-
-    (actual_dir, tmpdir.join("working"))
-}
+const RED: [u8; 4] = [255, 0, 0, 255];
+const BLUE: [u8; 4] = [0, 0, 255, 255];
 
 #[test]
 fn test_compare_with_fixture_images() {
-    let red = make_red_png();
-    let blue = make_blue_png();
+    let red = make_solid_png(2, 2, RED);
+    let blue = make_solid_png(2, 2, BLUE);
     let tmpdir = tempfile::tempdir().unwrap();
 
     let (actual_dir, working_dir) = setup_fixture(
@@ -85,8 +44,8 @@ fn test_compare_with_fixture_images() {
 
 #[test]
 fn test_compare_new_and_deleted_items() {
-    let red = make_red_png();
-    let blue = make_blue_png();
+    let red = make_solid_png(2, 2, RED);
+    let blue = make_solid_png(2, 2, BLUE);
     let tmpdir = tempfile::tempdir().unwrap();
 
     let (actual_dir, working_dir) =
@@ -110,7 +69,7 @@ fn test_compare_new_and_deleted_items() {
 
 #[test]
 fn test_report_generation() {
-    let red = make_red_png();
+    let red = make_solid_png(2, 2, RED);
     let tmpdir = tempfile::tempdir().unwrap();
 
     let (actual_dir, working_dir) =
@@ -129,13 +88,13 @@ fn test_report_generation() {
     // Verify out.json was created
     let json_path = working_dir.join("out.json");
     assert!(json_path.exists(), "out.json should be generated");
-    let json_content = fs::read_to_string(&json_path).unwrap();
+    let json_content = std::fs::read_to_string(&json_path).unwrap();
     assert!(json_content.contains("passedItems"));
 
     // Verify index.html was created
     let html_path = working_dir.join("index.html");
     assert!(html_path.exists(), "index.html should be generated");
-    let html_content = fs::read_to_string(&html_path).unwrap();
+    let html_content = std::fs::read_to_string(&html_path).unwrap();
     assert!(html_content.contains("reg report"));
     assert!(html_content.contains("reg-data"));
 }
