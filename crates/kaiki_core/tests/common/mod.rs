@@ -93,12 +93,8 @@ pub fn read_out_json(working_dir: &Path) -> serde_json::Value {
 
 /// Extract an array field from a JSON value and return sorted string entries.
 pub fn sorted_json_array(value: &serde_json::Value, field: &str) -> Vec<String> {
-    let mut items: Vec<String> = value[field]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|v| v.as_str().unwrap().to_string())
-        .collect();
+    let mut items: Vec<String> =
+        value[field].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
     items.sort();
     items
 }

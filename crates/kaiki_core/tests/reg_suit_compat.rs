@@ -168,8 +168,7 @@ fn different_images_go_to_failed_items() {
 fn actual_only_images_are_new_items() {
     let red = make_solid_png(2, 2, RED);
     let tmpdir = tempfile::tempdir().unwrap();
-    let (actual_dir, working_dir) =
-        setup_fixture(tmpdir.path(), &[("brand_new.png", &red)], &[]);
+    let (actual_dir, working_dir) = setup_fixture(tmpdir.path(), &[("brand_new.png", &red)], &[]);
 
     let processor = make_processor(&actual_dir, working_dir);
     let result = processor.compare().unwrap();
@@ -184,8 +183,7 @@ fn actual_only_images_are_new_items() {
 fn expected_only_images_are_deleted_items() {
     let red = make_solid_png(2, 2, RED);
     let tmpdir = tempfile::tempdir().unwrap();
-    let (actual_dir, working_dir) =
-        setup_fixture(tmpdir.path(), &[], &[("gone.png", &red)]);
+    let (actual_dir, working_dir) = setup_fixture(tmpdir.path(), &[], &[("gone.png", &red)]);
 
     let processor = make_processor(&actual_dir, working_dir);
     let result = processor.compare().unwrap();
@@ -487,9 +485,11 @@ fn deep_nesting_works_correctly() {
     let processor = make_processor(&actual_dir, working_dir.clone());
     let result = processor.compare().unwrap();
 
-    assert!(result
-        .passed_items
-        .contains(&CompactString::from("components/buttons/primary/default.png")));
+    assert!(
+        result
+            .passed_items
+            .contains(&CompactString::from("components/buttons/primary/default.png"))
+    );
 
     let json = read_out_json(&working_dir);
     let passed = sorted_json_array(&json, "passedItems");
@@ -551,11 +551,8 @@ fn single_image_fail() {
 fn only_new_images_no_expected() {
     let red = make_solid_png(2, 2, RED);
     let tmpdir = tempfile::tempdir().unwrap();
-    let (actual_dir, working_dir) = setup_fixture(
-        tmpdir.path(),
-        &[("a.png", &red), ("b.png", &red), ("c.png", &red)],
-        &[],
-    );
+    let (actual_dir, working_dir) =
+        setup_fixture(tmpdir.path(), &[("a.png", &red), ("b.png", &red), ("c.png", &red)], &[]);
 
     let processor = make_processor(&actual_dir, working_dir);
     let result = processor.compare().unwrap();
@@ -570,11 +567,8 @@ fn only_new_images_no_expected() {
 fn only_deleted_images_no_actual_matching() {
     let red = make_solid_png(2, 2, RED);
     let tmpdir = tempfile::tempdir().unwrap();
-    let (actual_dir, working_dir) = setup_fixture(
-        tmpdir.path(),
-        &[],
-        &[("x.png", &red), ("y.png", &red), ("z.png", &red)],
-    );
+    let (actual_dir, working_dir) =
+        setup_fixture(tmpdir.path(), &[], &[("x.png", &red), ("y.png", &red), ("z.png", &red)]);
 
     let processor = make_processor(&actual_dir, working_dir);
     let result = processor.compare().unwrap();
@@ -611,8 +605,7 @@ fn many_images_deterministic() {
     let expected_refs: Vec<(&str, &[u8])> =
         expected_images.iter().map(|(n, d)| (n.as_str(), d.as_slice())).collect();
 
-    let (actual_dir, working_dir) =
-        setup_fixture(tmpdir.path(), &actual_refs, &expected_refs);
+    let (actual_dir, working_dir) = setup_fixture(tmpdir.path(), &actual_refs, &expected_refs);
 
     let processor = make_processor(&actual_dir, working_dir);
     let result = processor.compare().unwrap();
