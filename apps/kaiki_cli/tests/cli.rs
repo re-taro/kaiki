@@ -73,12 +73,7 @@ fn test_prepare_valid_config() {
     let dir = TempDir::new().unwrap();
     let config_path = write_config(dir.path(), &minimal_config());
 
-    kaiki()
-        .arg("-c")
-        .arg(&config_path)
-        .arg("prepare")
-        .assert()
-        .success();
+    kaiki().arg("-c").arg(&config_path).arg("prepare").assert().success();
 }
 
 #[test]
@@ -123,18 +118,9 @@ fn test_prepare_custom_config_path() {
     let dir = TempDir::new().unwrap();
     let custom = dir.path().join("custom").join("my-config.json");
     std::fs::create_dir_all(custom.parent().unwrap()).unwrap();
-    std::fs::write(
-        &custom,
-        serde_json::to_string_pretty(&minimal_config()).unwrap(),
-    )
-    .unwrap();
+    std::fs::write(&custom, serde_json::to_string_pretty(&minimal_config()).unwrap()).unwrap();
 
-    kaiki()
-        .arg("-c")
-        .arg(&custom)
-        .arg("prepare")
-        .assert()
-        .success();
+    kaiki().arg("-c").arg(&custom).arg("prepare").assert().success();
 }
 
 // =========================================================================
