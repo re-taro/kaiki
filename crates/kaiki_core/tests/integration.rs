@@ -1,4 +1,3 @@
-#[expect(dead_code)]
 mod common;
 
 use compact_str::CompactString;
