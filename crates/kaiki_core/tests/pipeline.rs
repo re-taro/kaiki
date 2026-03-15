@@ -5,8 +5,8 @@ use std::sync::Arc;
 use kaiki_git::SimpleKeygen;
 
 use common::{
-    make_pipeline_processor, make_solid_png, MockNotifier, MockStorage, SharedMockNotifier,
-    SharedMockStorage,
+    MockNotifier, MockStorage, SharedMockNotifier, SharedMockStorage, make_pipeline_processor,
+    make_solid_png,
 };
 
 // ---------------------------------------------------------------------------
@@ -222,10 +222,7 @@ async fn test_sync_expected_nested_paths() {
 
     let img = make_solid_png(2, 2, [128, 128, 128, 255]);
 
-    let storage = Arc::new(MockStorage::new(
-        vec![("sub/dir/a.png".to_string(), img)],
-        None,
-    ));
+    let storage = Arc::new(MockStorage::new(vec![("sub/dir/a.png".to_string(), img)], None));
 
     let keygen = SimpleKeygen { expected_key: "nested-key".to_string() };
     let processor = make_pipeline_processor(
@@ -276,10 +273,8 @@ async fn test_publish_returns_report_url() {
     let working_dir = tmp.path().join("working");
     std::fs::create_dir_all(&actual_dir).unwrap();
 
-    let storage = Arc::new(MockStorage::new(
-        vec![],
-        Some("https://reports.example.com/123".to_string()),
-    ));
+    let storage =
+        Arc::new(MockStorage::new(vec![], Some("https://reports.example.com/123".to_string())));
 
     let keygen = SimpleKeygen { expected_key: "pub-key".to_string() };
     let processor = make_pipeline_processor(
@@ -390,10 +385,7 @@ async fn test_result_has_failures_reflects_comparison() {
     let png = make_solid_png(4, 4, [100, 100, 100, 255]);
     std::fs::write(actual_dir.join("same.png"), &png).unwrap();
 
-    let storage = Arc::new(MockStorage::new(
-        vec![("same.png".to_string(), png.clone())],
-        None,
-    ));
+    let storage = Arc::new(MockStorage::new(vec![("same.png".to_string(), png.clone())], None));
     let keygen = SimpleKeygen { expected_key: "key-same".to_string() };
     let processor = make_pipeline_processor(
         &actual_dir,
@@ -417,10 +409,7 @@ async fn test_result_has_failures_reflects_comparison() {
     let different = make_solid_png(4, 4, [200, 200, 200, 255]);
     std::fs::write(actual_dir2.join("diff.png"), &different).unwrap();
 
-    let storage2 = Arc::new(MockStorage::new(
-        vec![("diff.png".to_string(), png)],
-        None,
-    ));
+    let storage2 = Arc::new(MockStorage::new(vec![("diff.png".to_string(), png)], None));
     let keygen2 = SimpleKeygen { expected_key: "key-diff".to_string() };
     let processor2 = make_pipeline_processor(
         &actual_dir2,
@@ -446,10 +435,8 @@ async fn test_result_report_url_from_storage() {
     std::fs::write(actual_dir.join("x.png"), &png).unwrap();
 
     let url = "https://my-bucket.s3.amazonaws.com/report/index.html";
-    let storage = Arc::new(MockStorage::new(
-        vec![("x.png".to_string(), png)],
-        Some(url.to_string()),
-    ));
+    let storage =
+        Arc::new(MockStorage::new(vec![("x.png".to_string(), png)], Some(url.to_string())));
 
     let keygen = SimpleKeygen { expected_key: "url-key".to_string() };
     let processor = make_pipeline_processor(
