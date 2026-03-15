@@ -139,7 +139,11 @@ mod tests {
                 .env("GIT_COMMITTER_EMAIL", "test@test.com")
                 .output()
                 .expect("failed to run git");
-            assert!(output.status.success(), "git {args:?} failed: {}", String::from_utf8_lossy(&output.stderr));
+            assert!(
+                output.status.success(),
+                "git {args:?} failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             String::from_utf8(output.stdout).unwrap().trim().to_string()
         }
 
