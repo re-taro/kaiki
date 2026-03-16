@@ -1,5 +1,7 @@
 pub mod gcs;
+pub mod gcs_client;
 pub mod s3;
+pub mod s3_client;
 
 use std::path::Path;
 

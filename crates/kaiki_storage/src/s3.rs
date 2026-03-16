@@ -1,11 +1,11 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use aws_sdk_s3::Client;
 use flate2::Compression;
 use flate2::write::GzEncoder;
 use kaiki_config::S3PluginConfig;
 
+use crate::s3_client::{HttpS3Client, PutObjectParams, S3Client, SseConfig};
 use crate::{MAX_CONCURRENCY, PublishResult, StorageError, UPLOAD_EXTENSIONS, maybe_decompress};
 
 /// Build an S3 object key from optional prefix, storage key, and relative path.
@@ -29,12 +29,12 @@ fn s3_report_url(bucket_name: &str, path_prefix: Option<&str>, storage_key: &str
 }
 
 /// S3 storage backend.
-pub struct S3Storage {
-    client: Client,
+pub struct S3Storage<C: S3Client> {
+    client: C,
     config: S3PluginConfig,
 }
 
-impl S3Storage {
+impl S3Storage<HttpS3Client> {
     /// Creates a new S3 storage backend from the given plugin configuration.
     pub async fn new(config: S3PluginConfig) -> Result<Self, StorageError> {
         let mut aws_config_builder = aws_config::from_env();
@@ -53,9 +53,16 @@ impl S3Storage {
             s3_config_builder = s3_config_builder.endpoint_url(endpoint.clone());
         }
 
-        let client = Client::from_conf(s3_config_builder.build());
+        let client = HttpS3Client::new(aws_sdk_s3::Client::from_conf(s3_config_builder.build()));
 
         Ok(Self { client, config })
+    }
+}
+
+impl<C: S3Client> S3Storage<C> {
+    /// Creates an S3 storage backend with a custom client (for testing).
+    pub fn with_client(config: S3PluginConfig, client: C) -> Self {
+        Self { client, config }
     }
 
     fn build_key(&self, storage_key: &str, relative_path: &str) -> String {
@@ -67,7 +74,7 @@ impl S3Storage {
     }
 }
 
-impl crate::Storage for S3Storage {
+impl<C: S3Client + 'static> crate::Storage for S3Storage<C> {
     async fn fetch(&self, key: &str, dest_dir: &Path) -> Result<(), StorageError> {
         let prefix = self.build_key(key, "");
         let semaphore = Arc::new(tokio::sync::Semaphore::new(MAX_CONCURRENCY));
@@ -75,52 +82,32 @@ impl crate::Storage for S3Storage {
         let mut continuation_token = None;
 
         loop {
-            let mut req =
-                self.client.list_objects_v2().bucket(&self.config.bucket_name).prefix(&prefix);
+            let resp = self
+                .client
+                .list_objects_v2(&self.config.bucket_name, &prefix, continuation_token.as_deref())
+                .await?;
 
-            if let Some(token) = &continuation_token {
-                req = req.continuation_token(token);
-            }
-
-            let resp = req.send().await.map_err(|e| StorageError::S3(Box::new(e)))?;
-
-            let contents = resp.contents();
             let mut handles = Vec::new();
 
-            for obj in contents {
-                let Some(obj_key) = obj.key() else {
-                    continue;
-                };
-                let relative = obj_key.strip_prefix(&prefix).unwrap_or(obj_key);
+            for obj in resp.objects {
+                let relative = obj.key.strip_prefix(&prefix).unwrap_or(&obj.key).to_string();
                 if relative.is_empty() {
                     continue;
                 }
 
-                let dest_path = dest_dir.join(relative);
+                let dest_path = dest_dir.join(&relative);
                 let client = self.client.clone();
                 let bucket = self.config.bucket_name.clone();
-                let obj_key = obj_key.to_string();
+                let obj_key = obj.key;
                 let semaphore = Arc::clone(&semaphore);
 
                 handles.push(tokio::spawn(async move {
                     let _permit =
                         semaphore.acquire().await.map_err(|e| StorageError::S3(Box::new(e)))?;
 
-                    let resp = client
-                        .get_object()
-                        .bucket(&bucket)
-                        .key(&obj_key)
-                        .send()
-                        .await
-                        .map_err(|e| StorageError::S3(Box::new(e)))?;
+                    let output = client.get_object(&bucket, &obj_key).await?;
 
-                    let content_encoding = resp.content_encoding().map(|s| s.to_string());
-
-                    let body =
-                        resp.body.collect().await.map_err(|e| StorageError::S3(Box::new(e)))?;
-                    let bytes = body.into_bytes();
-
-                    let data = maybe_decompress(&bytes, content_encoding.as_deref());
+                    let data = maybe_decompress(&output.body, output.content_encoding.as_deref());
 
                     if let Some(parent) = dest_path.parent() {
                         tokio::fs::create_dir_all(parent).await.map_err(StorageError::Io)?;
@@ -135,8 +122,8 @@ impl crate::Storage for S3Storage {
                 handle.await.map_err(|e| StorageError::S3(Box::new(e)))??;
             }
 
-            if resp.is_truncated() == Some(true) {
-                continuation_token = resp.next_continuation_token().map(|s| s.to_string());
+            if resp.is_truncated {
+                continuation_token = resp.next_continuation_token;
             } else {
                 break;
             }
@@ -174,39 +161,32 @@ impl crate::Storage for S3Storage {
             let compressed =
                 encoder.finish().map_err(|e| StorageError::Compression(Box::new(e)))?;
 
-            let client = self.client.clone();
-            let bucket = self.config.bucket_name.clone();
-            let acl = self.config.acl.clone();
             let sse = self.config.sse.unwrap_or(false);
             let sse_kms_key_id = self.config.sse_kms_key_id.clone();
+            let sse_config = if let Some(kms_key_id) = sse_kms_key_id {
+                Some(SseConfig::Kms(kms_key_id))
+            } else if sse {
+                Some(SseConfig::Aes256)
+            } else {
+                None
+            };
+
+            let params = PutObjectParams {
+                content_type,
+                content_encoding: "gzip".to_string(),
+                acl: self.config.acl.clone(),
+                sse: sse_config,
+            };
+
+            let client = self.client.clone();
+            let bucket = self.config.bucket_name.clone();
             let semaphore = Arc::clone(&semaphore);
 
             handles.push(tokio::spawn(async move {
                 let _permit =
                     semaphore.acquire().await.map_err(|e| StorageError::S3(Box::new(e)))?;
 
-                let mut req = client
-                    .put_object()
-                    .bucket(&bucket)
-                    .key(&s3_key)
-                    .body(compressed.into())
-                    .content_type(content_type)
-                    .content_encoding("gzip");
-
-                if let Some(ref acl_value) = acl {
-                    req = req.acl(acl_value.as_str().into());
-                }
-
-                if let Some(ref kms_key_id) = sse_kms_key_id {
-                    req = req
-                        .server_side_encryption(aws_sdk_s3::types::ServerSideEncryption::AwsKms)
-                        .ssekms_key_id(kms_key_id);
-                } else if sse {
-                    req =
-                        req.server_side_encryption(aws_sdk_s3::types::ServerSideEncryption::Aes256);
-                }
-
-                req.send().await.map_err(|e| StorageError::S3(Box::new(e)))?;
+                client.put_object(&bucket, &s3_key, compressed, params).await?;
 
                 Ok::<(), StorageError>(())
             }));
