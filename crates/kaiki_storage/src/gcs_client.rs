@@ -73,20 +73,13 @@ impl GcsClient for HttpGcsClient {
             .items
             .unwrap_or_default()
             .into_iter()
-            .map(|obj| GcsObjectEntry {
-                name: obj.name,
-                content_encoding: obj.content_encoding,
-            })
+            .map(|obj| GcsObjectEntry { name: obj.name, content_encoding: obj.content_encoding })
             .collect();
 
         Ok(GcsListOutput { objects })
     }
 
-    async fn download_object(
-        &self,
-        bucket: &str,
-        object: &str,
-    ) -> Result<Vec<u8>, StorageError> {
+    async fn download_object(&self, bucket: &str, object: &str) -> Result<Vec<u8>, StorageError> {
         use google_cloud_storage::http::objects::download::Range;
         use google_cloud_storage::http::objects::get::GetObjectRequest;
 

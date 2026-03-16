@@ -103,11 +103,7 @@ impl S3Client for HttpS3Client {
         })
     }
 
-    async fn get_object(
-        &self,
-        bucket: &str,
-        key: &str,
-    ) -> Result<GetObjectOutput, StorageError> {
+    async fn get_object(&self, bucket: &str, key: &str) -> Result<GetObjectOutput, StorageError> {
         let resp = self
             .inner
             .get_object()
@@ -152,8 +148,7 @@ impl S3Client for HttpS3Client {
                     .ssekms_key_id(kms_key_id);
             }
             Some(SseConfig::Aes256) => {
-                req =
-                    req.server_side_encryption(aws_sdk_s3::types::ServerSideEncryption::Aes256);
+                req = req.server_side_encryption(aws_sdk_s3::types::ServerSideEncryption::Aes256);
             }
             None => {}
         }

@@ -94,11 +94,7 @@ impl S3Client for MockS3Client {
         })
     }
 
-    async fn get_object(
-        &self,
-        _bucket: &str,
-        key: &str,
-    ) -> Result<GetObjectOutput, StorageError> {
+    async fn get_object(&self, _bucket: &str, key: &str) -> Result<GetObjectOutput, StorageError> {
         if let Some(ref msg) = *self.get_error.lock().unwrap() {
             return Err(StorageError::S3(msg.clone().into()));
         }

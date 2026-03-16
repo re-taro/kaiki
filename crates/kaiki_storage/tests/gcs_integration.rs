@@ -6,9 +6,9 @@ use flate2::Compression;
 use flate2::write::GzEncoder;
 use kaiki_config::GcsPluginConfig;
 use kaiki_storage::Storage;
+use kaiki_storage::StorageError;
 use kaiki_storage::gcs::GcsStorage;
 use kaiki_storage::gcs_client::{GcsClient, GcsListOutput, GcsObjectEntry};
-use kaiki_storage::StorageError;
 
 // ---------------------------------------------------------------------------
 // Mock GCS Client
@@ -46,10 +46,10 @@ impl MockGcsClient {
     }
 
     fn add_object(&self, name: &str, data: Vec<u8>) {
-        self.objects.lock().unwrap().insert(
-            name.to_string(),
-            MockObject { data, content_encoding: None },
-        );
+        self.objects
+            .lock()
+            .unwrap()
+            .insert(name.to_string(), MockObject { data, content_encoding: None });
     }
 
     fn add_object_with_encoding(&self, name: &str, data: Vec<u8>, encoding: &str) {
@@ -83,11 +83,7 @@ impl GcsClient for MockGcsClient {
         Ok(GcsListOutput { objects: entries })
     }
 
-    async fn download_object(
-        &self,
-        _bucket: &str,
-        object: &str,
-    ) -> Result<Vec<u8>, StorageError> {
+    async fn download_object(&self, _bucket: &str, object: &str) -> Result<Vec<u8>, StorageError> {
         if let Some(ref msg) = *self.download_error.lock().unwrap() {
             return Err(StorageError::Gcs(msg.clone().into()));
         }
@@ -119,10 +115,7 @@ impl GcsClient for MockGcsClient {
 }
 
 fn default_gcs_config() -> GcsPluginConfig {
-    GcsPluginConfig {
-        bucket_name: "test-bucket".to_string(),
-        path_prefix: None,
-    }
+    GcsPluginConfig { bucket_name: "test-bucket".to_string(), path_prefix: None }
 }
 
 fn gzip_compress(data: &[u8]) -> Vec<u8> {
@@ -346,11 +339,7 @@ impl GcsClient for FailingUploadGcsClient {
         Ok(GcsListOutput { objects: vec![] })
     }
 
-    async fn download_object(
-        &self,
-        _bucket: &str,
-        _object: &str,
-    ) -> Result<Vec<u8>, StorageError> {
+    async fn download_object(&self, _bucket: &str, _object: &str) -> Result<Vec<u8>, StorageError> {
         Ok(vec![])
     }
 

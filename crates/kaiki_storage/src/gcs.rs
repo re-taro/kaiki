@@ -148,9 +148,7 @@ impl<C: GcsClient + 'static> crate::Storage for GcsStorage<C> {
                 let _permit =
                     semaphore.acquire().await.map_err(|e| StorageError::Gcs(Box::new(e)))?;
 
-                client
-                    .upload_object(&bucket, &gcs_key, compressed, &content_type, "gzip")
-                    .await?;
+                client.upload_object(&bucket, &gcs_key, compressed, &content_type, "gzip").await?;
 
                 Ok::<(), StorageError>(())
             }));
