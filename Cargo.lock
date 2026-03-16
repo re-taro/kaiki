@@ -3102,6 +3102,7 @@ dependencies = [
  "google-cloud-storage",
  "kaiki_config",
  "mime_guess",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "walkdir",

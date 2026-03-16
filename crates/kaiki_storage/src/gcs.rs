@@ -4,14 +4,9 @@ use std::sync::Arc;
 
 use flate2::Compression;
 use flate2::write::GzEncoder;
-use google_cloud_storage::client::{Client, ClientConfig};
-use google_cloud_storage::http::objects::Object;
-use google_cloud_storage::http::objects::download::Range;
-use google_cloud_storage::http::objects::get::GetObjectRequest;
-use google_cloud_storage::http::objects::list::ListObjectsRequest;
-use google_cloud_storage::http::objects::upload::{UploadObjectRequest, UploadType};
 use kaiki_config::GcsPluginConfig;
 
+use crate::gcs_client::{GcsClient, HttpGcsClient};
 use crate::{MAX_CONCURRENCY, PublishResult, StorageError, UPLOAD_EXTENSIONS, maybe_decompress};
 
 /// Build a GCS object key from optional prefix, storage key, and relative path.
@@ -35,22 +30,31 @@ fn gcs_report_url(bucket_name: &str, path_prefix: Option<&str>, storage_key: &st
 }
 
 /// GCS storage backend using the `google-cloud-storage` crate.
-pub struct GcsStorage {
-    client: Client,
+pub struct GcsStorage<C: GcsClient> {
+    client: C,
     config: GcsPluginConfig,
 }
 
-impl GcsStorage {
+impl GcsStorage<HttpGcsClient> {
     /// Creates a new GCS storage backend from the given plugin configuration.
     pub async fn new(config: GcsPluginConfig) -> Result<Self, StorageError> {
+        use google_cloud_storage::client::{Client, ClientConfig};
+
         let gcs_config = ClientConfig::default()
             .with_auth()
             .await
             .map_err(|e| StorageError::Gcs(Box::new(e)))?;
 
-        let client = Client::new(gcs_config);
+        let client = HttpGcsClient::new(Client::new(gcs_config));
 
         Ok(Self { client, config })
+    }
+}
+
+impl<C: GcsClient> GcsStorage<C> {
+    /// Creates a GCS storage backend with a custom client (for testing).
+    pub fn with_client(config: GcsPluginConfig, client: C) -> Self {
+        Self { client, config }
     }
 
     fn build_key(&self, storage_key: &str, relative_path: &str) -> String {
@@ -62,48 +66,33 @@ impl GcsStorage {
     }
 }
 
-impl crate::Storage for GcsStorage {
+impl<C: GcsClient + 'static> crate::Storage for GcsStorage<C> {
     async fn fetch(&self, key: &str, dest_dir: &Path) -> Result<(), StorageError> {
         let prefix = self.build_key(key, "");
         let semaphore = Arc::new(tokio::sync::Semaphore::new(MAX_CONCURRENCY));
 
-        let objects = self
-            .client
-            .list_objects(&ListObjectsRequest {
-                bucket: self.config.bucket_name.clone(),
-                prefix: Some(prefix.clone()),
-                ..Default::default()
-            })
-            .await
-            .map_err(|e| StorageError::Gcs(Box::new(e)))?;
+        let list_output = self.client.list_objects(&self.config.bucket_name, &prefix).await?;
 
-        let items = objects.items.unwrap_or_default();
         let mut handles = Vec::new();
 
-        for obj in items {
-            let obj_name = obj.name.clone();
-            let relative = obj_name.strip_prefix(&prefix).unwrap_or(&obj_name).to_string();
+        for obj in list_output.objects {
+            let relative = obj.name.strip_prefix(&prefix).unwrap_or(&obj.name).to_string();
             if relative.is_empty() {
                 continue;
             }
 
-            let content_encoding = obj.content_encoding.clone();
+            let content_encoding = obj.content_encoding;
             let dest_path = dest_dir.join(&relative);
             let client = self.client.clone();
             let bucket = self.config.bucket_name.clone();
+            let obj_name = obj.name;
             let semaphore = Arc::clone(&semaphore);
 
             handles.push(tokio::spawn(async move {
                 let _permit =
                     semaphore.acquire().await.map_err(|e| StorageError::Gcs(Box::new(e)))?;
 
-                let bytes = client
-                    .download_object(
-                        &GetObjectRequest { bucket, object: obj_name, ..Default::default() },
-                        &Range::default(),
-                    )
-                    .await
-                    .map_err(|e| StorageError::Gcs(Box::new(e)))?;
+                let bytes = client.download_object(&bucket, &obj_name).await?;
 
                 let data = maybe_decompress(&bytes, content_encoding.as_deref());
 
@@ -159,21 +148,7 @@ impl crate::Storage for GcsStorage {
                 let _permit =
                     semaphore.acquire().await.map_err(|e| StorageError::Gcs(Box::new(e)))?;
 
-                let upload_type = UploadType::Multipart(Box::new(Object {
-                    name: gcs_key.clone(),
-                    content_type: Some(content_type),
-                    content_encoding: Some("gzip".to_string()),
-                    ..Default::default()
-                }));
-
-                client
-                    .upload_object(
-                        &UploadObjectRequest { bucket, ..Default::default() },
-                        compressed,
-                        &upload_type,
-                    )
-                    .await
-                    .map_err(|e| StorageError::Gcs(Box::new(e)))?;
+                client.upload_object(&bucket, &gcs_key, compressed, &content_type, "gzip").await?;
 
                 Ok::<(), StorageError>(())
             }));
