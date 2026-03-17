@@ -43,13 +43,13 @@ pub fn detect_diff_regions(
         if ra == rb {
             return;
         }
-        if rank[ra] < rank[rb] {
-            parent[ra] = rb;
-        } else if rank[ra] > rank[rb] {
-            parent[rb] = ra;
-        } else {
-            parent[rb] = ra;
-            rank[ra] += 1;
+        match rank[ra].cmp(&rank[rb]) {
+            std::cmp::Ordering::Less => parent[ra] = rb,
+            std::cmp::Ordering::Greater => parent[rb] = ra,
+            std::cmp::Ordering::Equal => {
+                parent[rb] = ra;
+                rank[ra] += 1;
+            }
         }
     }
 

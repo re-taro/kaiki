@@ -207,7 +207,7 @@ mod tests {
     fn make_params(has_failures: bool, report_url: Option<&str>) -> NotifyParams {
         NotifyParams {
             comparison: sample_comparison(has_failures, has_failures),
-            report_url: report_url.map(|s| s.to_string()),
+            report_url: report_url.map(std::string::ToString::to_string),
             current_sha: "abc123".to_string(),
             pr_number: Some(42),
         }

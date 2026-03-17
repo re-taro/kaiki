@@ -55,7 +55,7 @@ pub(crate) fn maybe_decompress(data: &[u8], content_encoding: Option<&str>) -> V
     use flate2::read::GzDecoder;
 
     let is_gzip =
-        content_encoding.map(|enc| enc.to_ascii_lowercase().contains("gzip")).unwrap_or(false);
+        content_encoding.is_some_and(|enc| enc.to_ascii_lowercase().contains("gzip"));
 
     if !is_gzip {
         return data.to_vec();

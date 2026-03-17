@@ -309,7 +309,7 @@ impl RegProcessor {
 /// Recursively copy a directory.
 fn copy_dir(src: &Path, dst: &Path) -> Result<(), std::io::Error> {
     std::fs::create_dir_all(dst)?;
-    for entry in walkdir::WalkDir::new(src).into_iter().filter_map(|e| e.ok()) {
+    for entry in walkdir::WalkDir::new(src).into_iter().filter_map(std::result::Result::ok) {
         let path = entry.path();
         let relative = path.strip_prefix(src).unwrap_or(path);
         let dest = dst.join(relative);

@@ -139,9 +139,9 @@ pub fn compare_images(
     let max_delta = pixel::MAX_YIQ_DELTA;
     let threshold = options.matching_threshold * options.matching_threshold * max_delta;
 
-    let diff_color = &options.diff_color;
-    let diff_color_alt = options.diff_color_alt.as_ref();
-    let aa_color = &options.aa_color;
+    let diff_color = options.diff_color;
+    let diff_color_alt = options.diff_color_alt;
+    let aa_color = options.aa_color;
     let alpha = options.alpha;
 
     let mut diff_count: u64 = 0;

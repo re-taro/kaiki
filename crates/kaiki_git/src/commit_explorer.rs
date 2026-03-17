@@ -49,11 +49,11 @@ impl GitHashKeygen {
             .map_err(|e| GitError::Git(e.to_string()))?
             .local_branches()
             .map_err(|e| GitError::Git(e.to_string()))?
-            .filter_map(|r| r.ok())
+            .filter_map(std::result::Result::ok)
             .filter(|r| {
                 current_branch.as_ref().is_none_or(|current| r.name().as_bstr() != current.as_str())
             })
-            .filter_map(|r| r.into_fully_peeled_id().ok().map(|id| id.detach()))
+            .filter_map(|r| r.into_fully_peeled_id().ok().map(gix::Id::detach))
             .collect();
 
         while let Some(Ok(info)) = revwalk.next() {
@@ -350,7 +350,7 @@ mod tests {
     // ===== Group D: Boundary / Stress =====
 
     #[test]
-    #[ignore]
+    #[ignore = "slow: creates 299 commits"]
     fn test_expected_key_300th_step_found() {
         // main: fork, feature: 299 commits
         // Walk: steps 1..=299 are feature commits, step 300 is fork point
@@ -366,7 +366,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    #[ignore = "slow: creates 300 commits"]
     fn test_expected_key_301st_step_not_found() {
         // main: fork, feature: 300 commits
         // Walk: steps 1..=300 are feature commits, step 301 would be fork but count > 300

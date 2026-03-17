@@ -29,16 +29,18 @@ fn build_comment_body(params: &NotifyParams) -> String {
     let comp = &params.comparison;
     let mut body = format!("{COMMENT_MARKER}\n## reg report\n\n");
 
-    body.push_str(&format!(
+    use std::fmt::Write as _;
+    write!(
+        body,
         "| | Count |\n|---|---|\n| Changed | {} |\n| New | {} |\n| Deleted | {} |\n| Passed | {} |\n\n",
         comp.failed_items.len(),
         comp.new_items.len(),
         comp.deleted_items.len(),
         comp.passed_items.len(),
-    ));
+    ).unwrap();
 
     if let Some(ref url) = params.report_url {
-        body.push_str(&format!("[Report]({url})\n"));
+        writeln!(body, "[Report]({url})").unwrap();
     }
 
     body
@@ -110,9 +112,8 @@ impl<C: GitHubClient> GitHubNotifier<C> {
         let owner = self.owner()?;
         let repo = self.repo()?;
 
-        let comments = match self.client.list_issue_comments(owner, repo, pr_number).await {
-            Ok(c) => c,
-            Err(_) => return Ok(None), // best-effort: treat HTTP errors as "no existing comment"
+        let Ok(comments) = self.client.list_issue_comments(owner, repo, pr_number).await else {
+            return Ok(None); // best-effort: treat HTTP errors as "no existing comment"
         };
 
         for IssueComment { id, body } in &comments {
