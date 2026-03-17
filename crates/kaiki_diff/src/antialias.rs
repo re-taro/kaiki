@@ -9,7 +9,7 @@ pub fn is_antialiased(img1: &[u8], img2: &[u8], x: u32, y: u32, width: u32, heig
     let y1 = (y + 1).min(height - 1);
 
     let is_edge = x == x0 || x == x1 || y == y0 || y == y1;
-    let mut zeroes: u32 = if is_edge { 1 } else { 0 };
+    let mut zeroes: u32 = u32::from(is_edge);
     let mut min_delta: f64 = 0.0;
     let mut max_delta: f64 = 0.0;
     let mut min_x: u32 = 0;
@@ -68,7 +68,7 @@ fn has_many_siblings(img: &[u8], x: u32, y: u32, width: u32, height: u32) -> boo
     let center = &img[k..k + 4];
 
     let is_edge = x == x0 || x == x1 || y == y0 || y == y1;
-    let mut zeroes: u32 = if is_edge { 1 } else { 0 };
+    let mut zeroes: u32 = u32::from(is_edge);
 
     for ny in y0..=y1 {
         for nx in x0..=x1 {

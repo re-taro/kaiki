@@ -99,7 +99,9 @@ impl S3Client for HttpS3Client {
         Ok(ListObjectsOutput {
             objects,
             is_truncated: resp.is_truncated() == Some(true),
-            next_continuation_token: resp.next_continuation_token().map(|s| s.to_string()),
+            next_continuation_token: resp
+                .next_continuation_token()
+                .map(std::string::ToString::to_string),
         })
     }
 
@@ -113,7 +115,7 @@ impl S3Client for HttpS3Client {
             .await
             .map_err(|e| StorageError::S3(Box::new(e)))?;
 
-        let content_encoding = resp.content_encoding().map(|s| s.to_string());
+        let content_encoding = resp.content_encoding().map(std::string::ToString::to_string);
 
         let body = resp.body.collect().await.map_err(|e| StorageError::S3(Box::new(e)))?;
         let bytes = body.into_bytes().to_vec();

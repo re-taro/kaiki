@@ -18,9 +18,9 @@ fn decode(raw: &[u8]) -> ImageData {
 }
 
 fn make_solid(w: u32, h: u32, r: u8, g: u8, b: u8) -> ImageData {
-    let pixels = (w as usize) * (h as usize);
-    let mut data = Vec::with_capacity(pixels * 4);
-    for _ in 0..pixels {
+    let pixel_count = (w as usize) * (h as usize);
+    let mut data = Vec::with_capacity(pixel_count * 4);
+    for _ in 0..pixel_count {
         data.extend_from_slice(&[r, g, b, 255]);
     }
     ImageData { width: w, height: h, data }
@@ -29,8 +29,8 @@ fn make_solid(w: u32, h: u32, r: u8, g: u8, b: u8) -> ImageData {
 /// Deterministic pseudo-noise: mutate ~25 % of pixels using a simple hash.
 fn make_noisy(base: &ImageData) -> ImageData {
     let mut data = base.data.clone();
-    let pixels = (base.width as usize) * (base.height as usize);
-    for i in 0..pixels {
+    let pixel_count = (base.width as usize) * (base.height as usize);
+    for i in 0..pixel_count {
         // Simple hash: Knuth multiplicative hash
         let hash = (i as u32).wrapping_mul(2_654_435_761);
         if hash.is_multiple_of(4) {
@@ -119,8 +119,8 @@ fn bench_compare_fixture(c: &mut Criterion) {
     let expected_4 = decode(&fixture("4b.png"));
     let opts = CompareOptions::default();
 
-    let px_1 = (actual_1.width as u64) * (actual_1.height as u64);
-    let px_4 = (actual_4.width as u64) * (actual_4.height as u64);
+    let px_1 = u64::from(actual_1.width) * u64::from(actual_1.height);
+    let px_4 = u64::from(actual_4.width) * u64::from(actual_4.height);
 
     group.throughput(Throughput::Elements(px_1));
     group.bench_function("1a-1b", |b| {
@@ -145,8 +145,8 @@ fn bench_compare_identical(c: &mut Criterion) {
 
     for &(w, h, label) in &[(512, 256, "512x256"), (1920, 1080, "1920x1080")] {
         let img = make_solid(w, h, 128, 128, 128);
-        let pixels = (w as u64) * (h as u64);
-        group.throughput(Throughput::Elements(pixels));
+        let pixel_count = u64::from(w) * u64::from(h);
+        group.throughput(Throughput::Elements(pixel_count));
         group.bench_with_input(BenchmarkId::from_parameter(label), &img, |b, img| {
             b.iter(|| kaiki_diff::compare_images(img, img, &opts));
         });
@@ -166,9 +166,9 @@ fn bench_compare_all_diff(c: &mut Criterion) {
     for &(w, h, label) in &[(512, 256, "512x256"), (1920, 1080, "1920x1080")] {
         let black = make_solid(w, h, 0, 0, 0);
         let white = make_solid(w, h, 255, 255, 255);
-        let pixels = (w as u64) * (h as u64);
-        group.throughput(Throughput::Elements(pixels));
-        group.bench_with_input(BenchmarkId::from_parameter(label), &(), |b, _| {
+        let pixel_count = u64::from(w) * u64::from(h);
+        group.throughput(Throughput::Elements(pixel_count));
+        group.bench_with_input(BenchmarkId::from_parameter(label), &(), |b, ()| {
             b.iter(|| kaiki_diff::compare_images(&black, &white, &opts));
         });
     }
@@ -212,8 +212,8 @@ fn bench_compare_antialias(c: &mut Criterion) {
 
     let actual = decode(&fixture("1a.png"));
     let expected = decode(&fixture("1b.png"));
-    let pixels = (actual.width as u64) * (actual.height as u64);
-    group.throughput(Throughput::Elements(pixels));
+    let pixel_count = u64::from(actual.width) * u64::from(actual.height);
+    group.throughput(Throughput::Elements(pixel_count));
 
     let opts_aa_on = CompareOptions { enable_antialias: false, ..CompareOptions::default() };
     group.bench_function("aa-on", |b| {
@@ -237,8 +237,8 @@ fn bench_compare_threshold(c: &mut Criterion) {
 
     let actual = decode(&fixture("1a.png"));
     let expected = decode(&fixture("1b.png"));
-    let pixels = (actual.width as u64) * (actual.height as u64);
-    group.throughput(Throughput::Elements(pixels));
+    let pixel_count = u64::from(actual.width) * u64::from(actual.height);
+    group.throughput(Throughput::Elements(pixel_count));
 
     for threshold in [0.05, 0.1, 0.2] {
         let opts = CompareOptions { matching_threshold: threshold, ..CompareOptions::default() };
@@ -261,11 +261,11 @@ fn bench_compare_scaling(c: &mut Criterion) {
     for &(w, h) in &[(256, 256), (512, 512), (1024, 1024), (1920, 1080)] {
         let base = make_solid(w, h, 100, 150, 200);
         let noisy = make_noisy(&base);
-        let pixels = (w as u64) * (h as u64);
+        let pixel_count = u64::from(w) * u64::from(h);
         let label = format!("{w}x{h}");
 
-        group.throughput(Throughput::Elements(pixels));
-        group.bench_with_input(BenchmarkId::from_parameter(&label), &(), |b, _| {
+        group.throughput(Throughput::Elements(pixel_count));
+        group.bench_with_input(BenchmarkId::from_parameter(&label), &(), |b, ()| {
             b.iter(|| kaiki_diff::compare_images(&base, &noisy, &opts));
         });
     }

@@ -79,6 +79,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::float_cmp)]
     fn test_color_delta_identical_opaque() {
         let img = px(100, 150, 200, 255);
         assert_eq!(color_delta(&img, &img, 0, 0, false), 0.0);
@@ -118,6 +119,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::float_cmp)]
     fn test_color_delta_fully_transparent() {
         let img1 = px(255, 0, 0, 0);
         let img2 = px(0, 255, 0, 0);

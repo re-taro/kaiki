@@ -163,6 +163,7 @@ struct BuildConfigParams {
     slack_webhook: Option<String>,
 }
 
+#[expect(clippy::needless_pass_by_value)]
 fn build_config_json(p: BuildConfigParams) -> serde_json::Value {
     let mut plugins = serde_json::Map::new();
 

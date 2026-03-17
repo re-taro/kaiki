@@ -25,7 +25,7 @@ pub struct JsNotifyParams {
 impl JsNotifyParams {
     fn from_notify_params(params: &NotifyParams) -> Self {
         fn compact_to_strings(items: &[CompactString]) -> Vec<String> {
-            items.iter().map(|s| s.to_string()).collect()
+            items.iter().map(std::string::ToString::to_string).collect()
         }
         Self {
             failed_items: compact_to_strings(&params.comparison.failed_items),
@@ -34,7 +34,7 @@ impl JsNotifyParams {
             passed_items: compact_to_strings(&params.comparison.passed_items),
             report_url: params.report_url.clone(),
             current_sha: params.current_sha.clone(),
-            pr_number: params.pr_number.map(|n| n as i64),
+            pr_number: params.pr_number.map(u64::cast_signed),
         }
     }
 }

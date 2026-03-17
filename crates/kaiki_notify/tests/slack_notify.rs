@@ -23,7 +23,7 @@ fn make_params(has_failures: bool, report_url: Option<&str>) -> NotifyParams {
             expected_dir: "expected".into(),
             diff_dir: "diff".into(),
         },
-        report_url: report_url.map(|s| s.to_string()),
+        report_url: report_url.map(std::string::ToString::to_string),
         current_sha: "abc123".to_string(),
         pr_number: Some(42),
     }

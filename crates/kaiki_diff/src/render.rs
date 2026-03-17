@@ -56,8 +56,8 @@ pub fn draw_pixel_diff(
     output: &mut [u8],
     pos: usize,
     delta: f64,
-    diff_color: &[u8; 3],
-    diff_color_alt: Option<&[u8; 3]>,
+    diff_color: [u8; 3],
+    diff_color_alt: Option<[u8; 3]>,
 ) {
     let color = if delta < 0.0 { diff_color_alt.unwrap_or(diff_color) } else { diff_color };
     let out = &mut output[pos..pos + 4];
@@ -69,7 +69,7 @@ pub fn draw_pixel_diff(
 
 /// Draw an antialiased pixel using the configured AA color.
 #[inline]
-pub fn draw_pixel_aa(output: &mut [u8], pos: usize, aa_color: &[u8; 3]) {
+pub fn draw_pixel_aa(output: &mut [u8], pos: usize, aa_color: [u8; 3]) {
     let out = &mut output[pos..pos + 4];
     out[0] = aa_color[0];
     out[1] = aa_color[1];
@@ -122,7 +122,7 @@ mod tests {
     fn test_draw_pixel_diff_positive_delta() {
         let mut output = vec![0u8; 4];
         let diff_color = [255, 119, 119];
-        draw_pixel_diff(&mut output, 0, 1.0, &diff_color, None);
+        draw_pixel_diff(&mut output, 0, 1.0, diff_color, None);
         // positive delta (img2 brighter) → diff_color [255, 119, 119]
         assert_eq!(output, [255, 119, 119, 255]);
     }
@@ -131,7 +131,7 @@ mod tests {
     fn test_draw_pixel_diff_negative_delta() {
         let mut output = vec![0u8; 4];
         let diff_color = [255, 119, 119];
-        draw_pixel_diff(&mut output, 0, -1.0, &diff_color, None);
+        draw_pixel_diff(&mut output, 0, -1.0, diff_color, None);
         // negative delta (img1 brighter), no alt → falls back to diff_color
         assert_eq!(output, [255, 119, 119, 255]);
     }
@@ -141,7 +141,7 @@ mod tests {
         let mut output = vec![0u8; 4];
         let diff_color = [255, 119, 119];
         let diff_color_alt = [255, 0, 0];
-        draw_pixel_diff(&mut output, 0, -1.0, &diff_color, Some(&diff_color_alt));
+        draw_pixel_diff(&mut output, 0, -1.0, diff_color, Some(diff_color_alt));
         // negative delta (img1 brighter) with alt → uses diff_color_alt
         assert_eq!(output, [255, 0, 0, 255]);
     }
@@ -151,7 +151,7 @@ mod tests {
         let mut output = vec![0u8; 4];
         let diff_color = [255, 119, 119];
         let diff_color_alt = [255, 0, 0];
-        draw_pixel_diff(&mut output, 0, 1.0, &diff_color, Some(&diff_color_alt));
+        draw_pixel_diff(&mut output, 0, 1.0, diff_color, Some(diff_color_alt));
         // positive delta (img2 brighter) with alt → still uses diff_color
         assert_eq!(output, [255, 119, 119, 255]);
     }
@@ -172,7 +172,7 @@ mod tests {
     fn test_draw_pixel_aa() {
         let mut output = vec![0u8; 4];
         let aa_color = [255, 255, 0];
-        draw_pixel_aa(&mut output, 0, &aa_color);
+        draw_pixel_aa(&mut output, 0, aa_color);
         assert_eq!(output, [255, 255, 0, 255]); // Yellow
     }
 
@@ -180,7 +180,7 @@ mod tests {
     fn test_draw_pixel_aa_custom_color() {
         let mut output = vec![0u8; 4];
         let aa_color = [0, 128, 255];
-        draw_pixel_aa(&mut output, 0, &aa_color);
+        draw_pixel_aa(&mut output, 0, aa_color);
         assert_eq!(output, [0, 128, 255, 255]);
     }
 }

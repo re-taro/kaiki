@@ -37,9 +37,7 @@ fn download_fixtures() {
 
         let resp = client.get(&url).send().unwrap_or_else(|e| panic!("failed to fetch {url}: {e}"));
 
-        if !resp.status().is_success() {
-            panic!("HTTP {} for {url}", resp.status());
-        }
+        assert!(resp.status().is_success(), "HTTP {} for {url}", resp.status());
 
         let bytes = resp.bytes().unwrap_or_else(|e| panic!("failed to read body for {url}: {e}"));
         fs::write(&dest_path, &bytes)

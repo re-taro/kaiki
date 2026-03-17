@@ -138,7 +138,7 @@ impl<C: S3Client + 'static> crate::Storage for S3Storage<C> {
 
         for entry in walkdir::WalkDir::new(source_dir)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(std::result::Result::ok)
             .filter(|e| !e.file_type().is_dir())
         {
             let path = entry.path();

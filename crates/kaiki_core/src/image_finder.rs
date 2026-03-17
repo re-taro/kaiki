@@ -16,11 +16,11 @@ pub fn find_images(dir: &Path) -> BTreeSet<CompactString> {
 
     for entry in walkdir::WalkDir::new(dir)
         .into_iter()
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
         .filter(|e| !e.file_type().is_dir())
     {
         let path = entry.path();
-        let ext = path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase());
+        let ext = path.extension().and_then(|e| e.to_str()).map(str::to_lowercase);
 
         if let Some(ext) = ext
             && IMAGE_EXTENSIONS.contains(&ext.as_str())

@@ -244,6 +244,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::float_cmp)]
     fn test_effective_matching_threshold() {
         let core = CoreConfig::default();
         assert_eq!(effective_matching_threshold(&core), 0.0);
