@@ -99,7 +99,9 @@ impl S3Client for HttpS3Client {
         Ok(ListObjectsOutput {
             objects,
             is_truncated: resp.is_truncated() == Some(true),
-            next_continuation_token: resp.next_continuation_token().map(std::string::ToString::to_string),
+            next_continuation_token: resp
+                .next_continuation_token()
+                .map(std::string::ToString::to_string),
         })
     }
 
