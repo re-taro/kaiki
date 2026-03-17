@@ -9,7 +9,7 @@ _default:
 alias r := ready
 
 init:
-  cargo binstall watchexec-cli cargo-insta typos-cli cargo-shear dprint wasm-bindgen-cli -y
+  cargo binstall watchexec-cli cargo-insta typos-cli cargo-shear dprint wasm-bindgen-cli cargo-llvm-cov -y
 
 ready:
   git diff --exit-code --quiet
@@ -44,6 +44,10 @@ test:
 
 bench:
   cargo bench -p kaiki_diff
+
+coverage *args='':
+  cargo llvm-cov --workspace --exclude kaiki_napi --html {{args}}
+  @echo "Coverage report: target/llvm-cov/html/index.html"
 
 lint:
   just wasm-build-web
