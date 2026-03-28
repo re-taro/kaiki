@@ -8,6 +8,7 @@ keywords.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "WebAssembly bindings for kaiki image diff engine"
+publish = false
 
 [lints]
 workspace = true
