@@ -1,6 +1,7 @@
 [alias]
 ck = "check --workspace --all-features --all-targets --exclude kaiki_napi"
 lint = "clippy --workspace --all-targets --all-features --exclude kaiki_napi -- --deny warnings"
+xtask = "run -p xtask --"
 
 [target.wasm32-unknown-unknown]
 runner = "wasm-bindgen-test-runner"

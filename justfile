@@ -71,6 +71,13 @@ napi-test:
 napi-bench:
   cd napi/kaiki && pnpm run build:debug && pnpm run bench
 
+# Release helpers
+release-update *args='':
+  cargo xtask release update {{args}}
+
+release-publish *args='':
+  cargo xtask release publish {{args}}
+
 [unix]
 doc:
   RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --document-private-items
