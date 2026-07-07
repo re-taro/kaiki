@@ -1,4 +1,4 @@
-(function() {
+(function () {
   'use strict';
 
   var data = JSON.parse(document.getElementById('reg-data').textContent);
@@ -100,7 +100,7 @@
   // Tab switching
   var badges = document.querySelectorAll('.badge[data-tab]');
   for (var i = 0; i < badges.length; i++) {
-    badges[i].addEventListener('click', function() {
+    badges[i].addEventListener('click', function () {
       var tab = this.getAttribute('data-tab');
       for (var j = 0; j < badges.length; j++) {
         badges[j].classList.toggle('active', badges[j] === this);
@@ -113,7 +113,7 @@
   }
 
   // Slider drag
-  document.addEventListener('mousedown', function(e) {
+  document.addEventListener('mousedown', function (e) {
     var container = e.target.closest('.slider-container');
     if (!container) return;
     e.preventDefault();
@@ -139,61 +139,69 @@
   });
 
   // Touch slider
-  document.addEventListener('touchstart', function(e) {
-    var container = e.target.closest('.slider-container');
-    if (!container) return;
+  document.addEventListener(
+    'touchstart',
+    function (e) {
+      var container = e.target.closest('.slider-container');
+      if (!container) return;
 
-    function update(ev) {
-      var touch = ev.touches[0];
-      var rect = container.getBoundingClientRect();
-      var x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
-      var pct = (x / rect.width) * 100;
-      container.style.setProperty('--slider-pos', pct + '%');
-    }
+      function update(ev) {
+        var touch = ev.touches[0];
+        var rect = container.getBoundingClientRect();
+        var x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
+        var pct = (x / rect.width) * 100;
+        container.style.setProperty('--slider-pos', pct + '%');
+      }
 
-    update(e);
+      update(e);
 
-    function onMove(ev) {
-      ev.preventDefault();
-      update(ev);
-    }
-    function onEnd() {
-      document.removeEventListener('touchmove', onMove);
-      document.removeEventListener('touchend', onEnd);
-    }
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('touchend', onEnd);
-  }, { passive: true });
+      function onMove(ev) {
+        ev.preventDefault();
+        update(ev);
+      }
+      function onEnd() {
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend', onEnd);
+      }
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', onEnd);
+    },
+    { passive: true },
+  );
 
   // Sync overlay image width after load
-  document.addEventListener('load', function(e) {
-    if (e.target.tagName !== 'IMG') return;
-    var overlay = e.target.closest('.slider-overlay');
-    if (!overlay) return;
-    var container = overlay.closest('.slider-container');
-    if (container) {
-      overlay.querySelector('img').style.width = container.offsetWidth + 'px';
-    }
-  }, true);
+  document.addEventListener(
+    'load',
+    function (e) {
+      if (e.target.tagName !== 'IMG') return;
+      var overlay = e.target.closest('.slider-overlay');
+      if (!overlay) return;
+      var container = overlay.closest('.slider-container');
+      if (container) {
+        overlay.querySelector('img').style.width = container.offsetWidth + 'px';
+      }
+    },
+    true,
+  );
 
   // Zoom modal
   var modal = document.getElementById('zoom-modal');
   var modalImg = modal.querySelector('img');
 
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', function (e) {
     if (e.target.tagName === 'IMG' && e.target.closest('.card-body') && !e.target.closest('.slider-container')) {
       modalImg.src = e.target.src;
       modal.classList.add('active');
     }
   });
 
-  modal.addEventListener('click', function() {
+  modal.addEventListener('click', function () {
     modal.classList.remove('active');
     modalImg.src = '';
   });
 
   // Keyboard navigation
-  document.addEventListener('keydown', function(e) {
+  document.addEventListener('keydown', function (e) {
     // Escape closes zoom
     if (e.key === 'Escape' && modal.classList.contains('active')) {
       modal.classList.remove('active');
@@ -221,17 +229,17 @@
   });
 
   // Wasm bounding box integration
-  document.addEventListener('kaiki-wasm-ready', function() {
+  document.addEventListener('kaiki-wasm-ready', function () {
     var wasm = window.__kaikiWasm;
     if (!wasm) return;
     analyzeFailed(wasm, data);
   });
 
   function loadImageData(src) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
       var img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = function() {
+      img.onload = function () {
         var canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
@@ -247,20 +255,21 @@
 
   function analyzeFailed(wasm, d) {
     for (var i = 0; i < d.failedItems.length; i++) {
-      (function(name) {
-        Promise.all([
-          loadImageData(d.actualDir + '/' + name),
-          loadImageData(d.expectedDir + '/' + name),
-        ]).then(function(imgs) {
-          var actual = imgs[0];
-          var expected = imgs[1];
-          var w = Math.max(actual.width, expected.width);
-          var h = Math.max(actual.height, expected.height);
-          var result = wasm.comparePixelsWithRegions(actual.data, expected.data, w, h, 0.0, 16);
-          if (result && result.regions) {
-            drawRegions(name, result.regions, w, h);
-          }
-        }).catch(function() {/* ignore load failures */});
+      (function (name) {
+        Promise.all([loadImageData(d.actualDir + '/' + name), loadImageData(d.expectedDir + '/' + name)])
+          .then(function (imgs) {
+            var actual = imgs[0];
+            var expected = imgs[1];
+            var w = Math.max(actual.width, expected.width);
+            var h = Math.max(actual.height, expected.height);
+            var result = wasm.comparePixelsWithRegions(actual.data, expected.data, w, h, 0.0, 16);
+            if (result && result.regions) {
+              drawRegions(name, result.regions, w, h);
+            }
+          })
+          .catch(function () {
+            /* ignore load failures */
+          });
       })(d.failedItems[i]);
     }
   }

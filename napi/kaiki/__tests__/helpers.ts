@@ -6,13 +6,7 @@ import { PNG } from 'pngjs';
 // ── PNG generation ──────────────────────────────────────────────────────
 
 /** Create a solid-color PNG buffer. */
-export function makePng(
-  r: number,
-  g: number,
-  b: number,
-  width = 2,
-  height = 2,
-): Buffer {
+export function makePng(r: number, g: number, b: number, width = 2, height = 2): Buffer {
   const png = new PNG({ width, height });
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -98,10 +92,7 @@ export function setupFixture(
 
 // ── Mock factories ──────────────────────────────────────────────────────
 
-export function mockKeyGenerator(
-  expectedKey: string | null | undefined,
-  actualKey: string,
-) {
+export function mockKeyGenerator(expectedKey: string | null | undefined, actualKey: string) {
   let expectedKeyCalls = 0;
   let actualKeyCalls = 0;
   return {
@@ -130,10 +121,7 @@ export function mockKeyGenerator(
  * `fetch` copies `expectedImages` into `destDir` (simulating storage download).
  * `publish` records the call and returns a reportUrl.
  */
-export function mockPublisher(
-  expectedImages?: Record<string, Buffer>,
-  reportUrl?: string | null,
-) {
+export function mockPublisher(expectedImages?: Record<string, Buffer>, reportUrl?: string | null) {
   let fetchCalls: Array<{ key: string; destDir: string }> = [];
   let publishCalls: Array<{ key: string; sourceDir: string }> = [];
 
@@ -210,8 +198,6 @@ export function loadNativeRun(): typeof import('../index.js').run {
     return mod.run;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(
-      `Native module not built. Run "pnpm run build:debug" first.\n${msg}`,
-    );
+    throw new Error(`Native module not built. Run "pnpm run build:debug" first.\n${msg}`);
   }
 }

@@ -15,9 +15,7 @@ describe('plugin-loader', () => {
           const fs = await import('node:fs');
           const os = await import('node:os');
           const path = await import('node:path');
-          const tmpDir = fs.mkdtempSync(
-            path.join(os.tmpdir(), 'kaiki-pl-test-'),
-          );
+          const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kaiki-pl-test-'));
           const configPath = path.join(tmpDir, 'regconfig.json');
           fs.writeFileSync(
             configPath,

@@ -17,10 +17,7 @@ interface PluginHolder {
   publisher?: {
     init(config: Record<string, unknown>): void;
     fetch(args: { key: string; destDir: string }): Promise<void>;
-    publish(args: {
-      key: string;
-      sourceDir: string;
-    }): Promise<{ reportUrl?: string | null }>;
+    publish(args: { key: string; sourceDir: string }): Promise<{ reportUrl?: string | null }>;
   };
   notifier?: {
     init(config: Record<string, unknown>): void;
@@ -58,19 +55,16 @@ export async function run(configPath = 'regconfig.json') {
 
   let keyGenerator:
     | {
-      getExpectedKey: () => Promise<string | null>;
-      getActualKey: () => Promise<string>;
-    }
+        getExpectedKey: () => Promise<string | null>;
+        getActualKey: () => Promise<string>;
+      }
     | undefined;
 
   let publisher:
     | {
-      fetch: (args: { key: string; destDir: string }) => Promise<void>;
-      publish: (args: {
-        key: string;
-        sourceDir: string;
-      }) => Promise<{ reportUrl?: string | null }>;
-    }
+        fetch: (args: { key: string; destDir: string }) => Promise<void>;
+        publish: (args: { key: string; sourceDir: string }) => Promise<{ reportUrl?: string | null }>;
+      }
     | undefined;
 
   const notifiers: Array<{
@@ -116,9 +110,7 @@ export async function run(configPath = 'regconfig.json') {
   }
 
   if (!keyGenerator) {
-    throw new Error(
-      'No keyGenerator plugin found. At least one plugin must provide a keyGenerator.',
-    );
+    throw new Error('No keyGenerator plugin found. At least one plugin must provide a keyGenerator.');
   }
 
   return nativeRun({

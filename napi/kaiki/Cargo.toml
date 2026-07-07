@@ -6,9 +6,9 @@ categories.workspace = true
 edition.workspace = true
 keywords.workspace = true
 license.workspace = true
+publish = false
 repository.workspace = true
 description = "Node.js bindings for kaiki visual regression testing"
-publish = false
 
 [lints]
 workspace = true
