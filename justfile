@@ -10,6 +10,7 @@ alias r := ready
 
 init:
   cargo binstall watchexec-cli cargo-insta typos-cli cargo-shear dprint wasm-bindgen-cli cargo-llvm-cov -y
+  pnpm install
 
 ready:
   git diff --exit-code --quiet
@@ -30,6 +31,7 @@ fmt:
   cargo shear --fix
   cargo fmt --all
   dprint fmt
+  node --run fmt
 
 check:
   just wasm-build-web
