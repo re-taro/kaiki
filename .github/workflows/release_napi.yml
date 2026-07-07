@@ -21,7 +21,7 @@ jobs:
       contents: read
     outputs:
       version: ${{ steps.check.outputs.version }}
-      changed: ${{ steps.check.outputs.changed }}
+      changed: ${{ steps.check.outputs.version_changed }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -29,7 +29,8 @@ jobs:
       - uses: ./.github/actions/check-version
         id: check
         with:
-          package-json-path: napi/kaiki/package.json
+          file-name: napi/kaiki/package.json
+          diff-search: "true"
 
   build-napi:
     name: Build napi (${{ matrix.target }})
@@ -62,7 +63,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/setup-node
       - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
         with:
           targets: ${{ matrix.target }}
@@ -122,8 +123,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      - uses: ./.github/actions/setup-node
         with:
           registry-url: https://registry.npmjs.org
 
