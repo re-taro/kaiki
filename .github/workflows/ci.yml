@@ -1,112 +1,175 @@
 name: CI
 
+permissions: {}
+
 on:
+  workflow_dispatch:
   pull_request:
+    types:
+      - opened
+      - synchronize
   push:
     branches:
       - main
 
-permissions:
-  contents: read
-
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
-  changes:
-    name: Detect Changes
+  test-ubuntu:
+    name: Test Linux
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
-    outputs:
-      napi: ${{ steps.filter.outputs.napi }}
-      wasm: ${{ steps.filter.outputs.wasm }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
-        id: filter
+      - uses: ./.github/actions/setup-rust
         with:
-          filters: |
-            napi:
-              - 'napi/**'
-              - 'crates/**'
-              - 'Cargo.toml'
-              - 'Cargo.lock'
-            wasm:
-              - 'wasm/**'
-              - 'crates/kaiki_diff/**'
-              - 'Cargo.toml'
-              - 'Cargo.lock'
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: warm
+          tools: wasm-bindgen-cli@0.2.114
+      - run: rustup target add wasm32-unknown-unknown
+      - name: Build wasm bindings # Required by kaiki_report's `ximgdiff` feature (include_bytes!)
+        run: |
+          cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
+          wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
+      - run: cargo run -p xtask -- download-fixtures
+      - run: cargo ck --locked
+      - run: cargo check -p kaiki_napi --locked
+      - run: cargo test --workspace --exclude kaiki_napi
+      - run: git diff --exit-code # Must commit everything
 
-  format:
-    name: Format
-    runs-on: ubuntu-latest
+  test-ubuntu-aarch64:
+    if: ${{ github.ref_name == 'main' }}
+    name: Test Linux ARM64
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
+      - uses: ./.github/actions/setup-rust
         with:
-          components: rustfmt
-      - run: cargo fmt --all --check
-      - uses: dprint/check@9cb3a2b17a8e606d37aae341e49df3654933fc23 # v2.3
-
-  typos:
-    name: Typos
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: crate-ci/typos@631208b7aac2daa8b707f55e7331f9112b0e062d # v1.44.0
-
-  deny:
-    name: Cargo Deny
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: EmbarkStudios/cargo-deny-action@3fd3802e88374d3fe9159b834c7714ec57d6c979 # v2.0.15
-
-  shear:
-    name: Unused Dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
-      - uses: taiki-e/install-action@a164de717a0ee9284c2d9db1c6016a4c339cd333 # v2.69.14
-        with:
-          tool: cargo-shear
-      - run: cargo shear
-
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-      - uses: taiki-e/install-action@a164de717a0ee9284c2d9db1c6016a4c339cd333 # v2.69.14
-        with:
-          tool: wasm-bindgen-cli@0.2.114
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: warm-aarch64
+          tools: wasm-bindgen-cli@0.2.114
+      - run: rustup target add wasm32-unknown-unknown
       - name: Build wasm bindings
         run: |
           cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
           wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
-      - run: cargo check --workspace --all-features --all-targets --exclude kaiki_napi --locked
-      - run: cargo check -p kaiki_napi --locked
+      - run: cargo run -p xtask -- download-fixtures
+      - run: cargo ck --locked
+      - run: cargo test --workspace --exclude kaiki_napi
+      - run: git diff --exit-code # Must commit everything
+
+  test-mac: # Separate job to save a job on PRs
+    if: ${{ github.ref_name == 'main' }}
+    name: Test Mac
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
+        with:
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: warm
+          tools: wasm-bindgen-cli@0.2.114
+      - run: rustup target add wasm32-unknown-unknown
+      - name: Build wasm bindings
+        run: |
+          cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
+          wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
+      - run: cargo run -p xtask -- download-fixtures
+      - run: cargo ck --locked
+      - run: cargo test --workspace --exclude kaiki_napi
+      - run: git diff --exit-code # Must commit everything
+
+  test-windows:
+    if: ${{ github.ref_name == 'main' }}
+    name: Test Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
+        with:
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: warm
+      - run: cargo run -p xtask -- download-fixtures
+      # No need for `cargo ck` because it's already checked in linux.
+      # Default features don't require the wasm bindings, so no wasm build here.
+      - run: cargo test --workspace --exclude kaiki_napi
+
+  test-wasm:
+    name: Test WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/check-changes
+        id: filter
+        with:
+          packages: kaiki_diff_wasm
+          paths: wasm/,Cargo.toml,Cargo.lock,rust-toolchain.toml,.github/
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ github.event.pull_request.number }}
+      - uses: ./.github/actions/setup-rust
+        if: steps.filter.outputs.changed == 'true'
+        with:
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: wasm
+          tools: wasm-bindgen-cli@0.2.114
+      - if: steps.filter.outputs.changed == 'true'
+        run: rustup target add wasm32-unknown-unknown
+      - if: steps.filter.outputs.changed == 'true'
+        run: cargo test --target wasm32-unknown-unknown -p kaiki_diff_wasm
+
+  test-napi:
+    name: Test NAPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/check-changes
+        id: filter
+        with:
+          packages: kaiki_napi
+          paths: napi/,Cargo.toml,Cargo.lock,rust-toolchain.toml,.github/
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ github.event.pull_request.number }}
+      - uses: ./.github/actions/setup-rust
+        if: steps.filter.outputs.changed == 'true'
+        with:
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: napi
+      - uses: ./.github/actions/setup-node
+        if: steps.filter.outputs.changed == 'true'
+      - name: Install dependencies
+        if: steps.filter.outputs.changed == 'true'
+        working-directory: napi/kaiki
+        run: pnpm install --frozen-lockfile
+      - name: Build and test napi
+        if: steps.filter.outputs.changed == 'true'
+        working-directory: napi/kaiki
+        run: |
+          pnpm run build:debug
+          pnpm test
+
+  typos:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: crate-ci/typos@02ea592e44b3a53c302f697cddca7641cd051c3d # v1.45.0
+        with:
+          files: .
 
   lint:
     name: Lint
@@ -115,100 +178,33 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
+      - uses: ./.github/actions/setup-rust
         with:
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: lint
           components: clippy
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-      - uses: taiki-e/install-action@a164de717a0ee9284c2d9db1c6016a4c339cd333 # v2.69.14
-        with:
-          tool: wasm-bindgen-cli@0.2.114
-      - name: Build wasm bindings
+          tools: wasm-bindgen-cli@0.2.114
+      - run: rustup target add wasm32-unknown-unknown
+      - name: Build wasm bindings # Required by kaiki_report's `ximgdiff` feature (include_bytes!)
         run: |
           cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
           wasm-bindgen --target web --out-dir wasm/kaiki_diff_wasm/pkg target/wasm32-unknown-unknown/release/kaiki_diff_wasm.wasm
-      - run: cargo clippy --workspace --all-targets --all-features --exclude kaiki_napi -- --deny warnings
+      - run: cargo lint
       - run: cargo clippy -p kaiki_napi -- --deny warnings
 
-  test:
-    name: Test (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest"]' || '["ubuntu-latest", "macos-latest", "windows-latest"]') }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-      - run: cargo run -p xtask -- download-fixtures
-      - run: cargo test --workspace --exclude kaiki_napi
-
-  napi-test:
-    name: napi Test
-    needs: changes
-    if: needs.changes.outputs.napi == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-      - name: Install dependencies
-        working-directory: napi/kaiki
-        run: pnpm install --frozen-lockfile
-      - name: Build and test napi
-        working-directory: napi/kaiki
-        run: |
-          pnpm run build:debug
-          pnpm test
-
-  wasm-test:
-    name: Wasm Test
-    needs: changes
-    if: needs.changes.outputs.wasm == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-      - uses: taiki-e/install-action@a164de717a0ee9284c2d9db1c6016a4c339cd333 # v2.69.14
-        with:
-          tool: wasm-bindgen-cli@0.2.114
-      - run: cargo test --target wasm32-unknown-unknown -p kaiki_diff_wasm
-
   doc:
-    name: Documentation
+    name: Doc
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
+      - uses: ./.github/actions/setup-rust
         with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-      - uses: taiki-e/install-action@a164de717a0ee9284c2d9db1c6016a4c339cd333 # v2.69.14
-        with:
-          tool: wasm-bindgen-cli@0.2.114
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: doc
+          tools: wasm-bindgen-cli@0.2.114
+      - run: rustup target add wasm32-unknown-unknown
       - name: Build wasm bindings
         run: |
           cargo build --target wasm32-unknown-unknown --release -p kaiki_diff_wasm
