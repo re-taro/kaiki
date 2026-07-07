@@ -1,0 +1,48 @@
+name: Setup Node and pnpm
+description: Setup Node.js and pnpm with caching
+
+inputs:
+  registry-url:
+    default: ""
+    required: false
+    description: "Optional registry to set up for auth (e.g. https://registry.npmjs.org). Will set the registry in a project level .npmrc file, and set up auth to read in from env.NODE_AUTH_TOKEN. Leave empty when not publishing, otherwise installs fail on the unset NODE_AUTH_TOKEN."
+
+  scope:
+    required: false
+    description: "Optional scope for authenticating against scoped registries. Will fall back to the repository owner when using the GitHub Packages registry (https://npm.pkg.github.com/)."
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+
+    - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      with:
+        node-version-file: .tool-versions
+        registry-url: ${{ inputs.registry-url }}
+        scope: ${{ inputs.scope }}
+        package-manager-cache: false
+        # see pnpm cache setting below
+
+    - name: Get pnpm store directory
+      id: store
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+    - name: Save and restore pnpm cache on main
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      if: ${{ github.ref_name == 'main' }}
+      with:
+        path: ${{ steps.store.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Restore pnpm cache on PR
+      uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      if: ${{ github.ref_name != 'main' }}
+      with:
+        path: ${{ steps.store.outputs.STORE_PATH }}
+        key: |
+          ${{ runner.os }}-pnpm-store-
