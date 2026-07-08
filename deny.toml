@@ -22,9 +22,22 @@ yanked = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-  # gix-date TimeBuf::as_str non-utf8 bug; fix requires gix 0.78+ (currently 0.72)
-  # TODO: remove after upgrading gix
-  "RUSTSEC-2025-0140",
+  # bincode is a dependency of git-cliff-core (xtask-only dev tooling); upstream
+  # has ceased development and considers 1.x/2.x final, no fix will be released
+  "RUSTSEC-2025-0141",
+  # core2 (libflate <- rust-embed <- git-cliff-core, xtask-only dev tooling) is
+  # unmaintained with all versions yanked; no safe upgrade is available
+  "RUSTSEC-2026-0105",
+  # proc-macro-error2 (include-flate <- rust-embed <- git-cliff-core, xtask-only
+  # dev tooling) is unmaintained; no safe upgrade is available
+  "RUSTSEC-2026-0173",
+  # rustls-webpki 0.101.x is pulled in via rustls 0.21 by aws-smithy-http-client;
+  # fixes only exist in 0.103.x, which the up-to-date rustls 0.23 path already uses
+  # TODO: remove once the AWS SDK drops its legacy rustls 0.21 code path
+  "RUSTSEC-2026-0049",
+  "RUSTSEC-2026-0098",
+  "RUSTSEC-2026-0099",
+  "RUSTSEC-2026-0104",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
