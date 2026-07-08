@@ -29,9 +29,8 @@ pub fn run(dry_run: bool) {
 
     // Open repository and collect commits
     let repo = Repository::init(root.clone()).expect("failed to init git-cliff repository");
-    let git_commits = repo
-        .commits(range.as_deref(), None, None, false)
-        .expect("failed to collect commits");
+    let git_commits =
+        repo.commits(range.as_deref(), None, None, false).expect("failed to collect commits");
 
     if git_commits.is_empty() {
         println!("No commits found since last tag. Nothing to release.");
@@ -39,8 +38,7 @@ pub fn run(dry_run: bool) {
     }
 
     // Convert git2::Commit to git_cliff_core::commit::Commit
-    let cliff_commits: Vec<CliffCommit> =
-        git_commits.iter().map(CliffCommit::from).collect();
+    let cliff_commits: Vec<CliffCommit> = git_commits.iter().map(CliffCommit::from).collect();
 
     // Detect bump type from commits
     let bump = detect_bump_from_commits(&cliff_commits);
@@ -100,17 +98,15 @@ pub fn changelog_only() {
     let cliff_config = CliffConfig::load(&cliff_toml_path).expect("failed to load cliff.toml");
 
     let repo = Repository::init(root).expect("failed to init git-cliff repository");
-    let git_commits = repo
-        .commits(range.as_deref(), None, None, false)
-        .expect("failed to collect commits");
+    let git_commits =
+        repo.commits(range.as_deref(), None, None, false).expect("failed to collect commits");
 
     if git_commits.is_empty() {
         println!("No commits found since last tag.");
         return;
     }
 
-    let cliff_commits: Vec<CliffCommit> =
-        git_commits.iter().map(CliffCommit::from).collect();
+    let cliff_commits: Vec<CliffCommit> = git_commits.iter().map(CliffCommit::from).collect();
 
     let changelog = generate_changelog(cliff_config, &cliff_commits, "Unreleased");
     println!("{changelog}");
@@ -160,11 +156,7 @@ fn detect_bump_from_commits(commits: &[CliffCommit]) -> BumpType {
     if has_feat { BumpType::Minor } else { BumpType::Patch }
 }
 
-fn generate_changelog(
-    config: CliffConfig,
-    commits: &[CliffCommit],
-    version: &str,
-) -> String {
+fn generate_changelog(config: CliffConfig, commits: &[CliffCommit], version: &str) -> String {
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("system clock before UNIX epoch")

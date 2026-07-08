@@ -11,11 +11,8 @@ const WORKSPACE_CRATE_NAMES: &[&str] = &[
     "kaiki_storage",
 ];
 
-const PACKAGE_JSON_FILES: &[&str] = &[
-    "npm/kaiki/package.json",
-    "napi/kaiki/package.json",
-    "wasm/kaiki_diff_wasm/package.json",
-];
+const PACKAGE_JSON_FILES: &[&str] =
+    &["npm/kaiki/package.json", "napi/kaiki/package.json", "wasm/kaiki_diff_wasm/package.json"];
 
 /// Update `[workspace.package] version` and `[workspace.dependencies] kaiki_* version`
 /// in the root `Cargo.toml`.
@@ -32,8 +29,7 @@ pub fn update_workspace_cargo_toml(root: &Path, new_version: &str) {
         doc["workspace"]["dependencies"][name]["version"] = toml_edit::value(new_version);
     }
 
-    fs::write(&cargo_toml_path, doc.to_string())
-        .expect("failed to write root Cargo.toml");
+    fs::write(&cargo_toml_path, doc.to_string()).expect("failed to write root Cargo.toml");
 }
 
 /// Update `version` (and `optionalDependencies` if present) in each `package.json`.
@@ -83,7 +79,8 @@ pub fn read_workspace_version(root: &Path) -> String {
 
 /// Compute the next version given the current version and bump type.
 pub fn bump_version(current: &str, bump: BumpType) -> String {
-    let parts: Vec<u64> = current.split('.').map(|s| s.parse().expect("invalid version part")).collect();
+    let parts: Vec<u64> =
+        current.split('.').map(|s| s.parse().expect("invalid version part")).collect();
     assert!(parts.len() == 3, "expected semver x.y.z, got {current}");
 
     let (major, minor, patch) = (parts[0], parts[1], parts[2]);

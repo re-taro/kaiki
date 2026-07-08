@@ -26,11 +26,8 @@ pub fn run(dry_run: bool) {
         .expect("failed to run cargo metadata");
 
     // Filter publishable workspace crates
-    let workspace_members: HashSet<&str> = metadata
-        .workspace_members
-        .iter()
-        .map(|id| id.repr.as_str())
-        .collect();
+    let workspace_members: HashSet<&str> =
+        metadata.workspace_members.iter().map(|id| id.repr.as_str()).collect();
 
     let publishable: Vec<&cargo_metadata::Package> = metadata
         .packages
@@ -74,9 +71,8 @@ pub fn run(dry_run: bool) {
         }
         cmd.current_dir(&root);
 
-        let status = cmd
-            .status()
-            .unwrap_or_else(|e| panic!("failed to run cargo publish for {name}: {e}"));
+        let status =
+            cmd.status().unwrap_or_else(|e| panic!("failed to run cargo publish for {name}: {e}"));
         assert!(status.success(), "cargo publish failed for {name}");
 
         // Wait for crates.io index to update (skip for last crate or dry-run)
@@ -181,11 +177,7 @@ fn topological_sort(
     result
 }
 
-fn is_already_published(
-    client: &reqwest::blocking::Client,
-    name: &str,
-    version: &str,
-) -> bool {
+fn is_already_published(client: &reqwest::blocking::Client, name: &str, version: &str) -> bool {
     let url = format!("https://crates.io/api/v1/crates/{name}");
     let Ok(resp) = client.get(&url).send() else {
         return false;

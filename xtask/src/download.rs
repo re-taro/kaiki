@@ -2,8 +2,8 @@ use std::fs;
 use std::path::Path;
 
 const FIXTURES: &[&str] = &[
-    "1a", "1b", "1diff", "2a", "2b", "2diff", "3a", "3b", "3diff", "4a", "4b", "4diff", "5a",
-    "5b", "5diff", "6a", "6b", "6diff", "7a", "7b",
+    "1a", "1b", "1diff", "2a", "2b", "2diff", "3a", "3b", "3diff", "4a", "4b", "4diff", "5a", "5b",
+    "5diff", "6a", "6b", "6diff", "7a", "7b",
 ];
 
 const BASE_URL: &str =
@@ -35,13 +35,11 @@ pub fn run() {
             println!("  fetch {filename}");
         }
 
-        let resp =
-            client.get(&url).send().unwrap_or_else(|e| panic!("failed to fetch {url}: {e}"));
+        let resp = client.get(&url).send().unwrap_or_else(|e| panic!("failed to fetch {url}: {e}"));
 
         assert!(resp.status().is_success(), "HTTP {} for {url}", resp.status());
 
-        let bytes =
-            resp.bytes().unwrap_or_else(|e| panic!("failed to read body for {url}: {e}"));
+        let bytes = resp.bytes().unwrap_or_else(|e| panic!("failed to read body for {url}: {e}"));
         fs::write(&dest_path, &bytes)
             .unwrap_or_else(|e| panic!("failed to write {}: {e}", dest_path.display()));
     }
