@@ -1,28 +1,43 @@
-name: autofix.ci
+name: autofix.ci # For security reasons, the workflow in which the autofix.ci action is used must be named "autofix.ci".
+
+permissions: {}
 
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
 
-permissions:
-  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
   autofix:
-    name: Autofix
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93.1
+      - uses: ./.github/actions/setup-node
+      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-rust
         with:
+          restore-cache: true
+          cache-key: warm
+          tools: just,cargo-shear@1.11.2,dprint
           components: rustfmt
-      - uses: taiki-e/install-action@b18b9d93a43496aeda12369e7563d9251abc2fe1 # v2.68.24
-        with:
-          tool: cargo-shear,dprint
-
-      - run: cargo shear --fix
-      - run: cargo fmt --all
-      - run: dprint fmt
-
+      - name: cargo-shear
+        id: shear
+        shell: bash
+        run: |
+          if ! cargo shear --fix; then
+            echo "shear=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Update lock file # `cargo metadata` re-resolves and rewrites Cargo.lock without compiling
+        run: cargo metadata --format-version=1 > /dev/null
+        if: ${{ steps.shear.outputs.shear == 'true' }}
+      - run: just fmt
       - uses: autofix-ci/action@7a166d7532b277f34e16238930461bf77f9d7ed8 # v1.3.3
+        with:
+          fail-fast: false

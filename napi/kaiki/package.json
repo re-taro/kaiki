@@ -1,6 +1,6 @@
 {
   "name": "@kaiki/diff",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Node.js bindings for kaiki visual regression testing",
   "main": "index.js",
   "types": "index.d.ts",

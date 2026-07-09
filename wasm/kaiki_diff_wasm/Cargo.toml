@@ -6,6 +6,7 @@ categories.workspace = true
 edition.workspace = true
 keywords.workspace = true
 license.workspace = true
+publish = false
 repository.workspace = true
 description = "WebAssembly bindings for kaiki image diff engine"
 
@@ -14,6 +15,8 @@ workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+test = false
+doctest = false
 
 [dependencies]
 kaiki_diff = { workspace = true }

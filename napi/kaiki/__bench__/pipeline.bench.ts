@@ -107,13 +107,11 @@ describe('Scaling', () => {
     return { actual, expected };
   }
 
-  for (
-    const [count, iterations] of [
-      [10, 20],
-      [50, 10],
-      [100, 5],
-    ] as const
-  ) {
+  for (const [count, iterations] of [
+    [10, 20],
+    [50, 10],
+    [100, 5],
+  ] as const) {
     describe(`${count} images`, () => {
       let tmpDir: string;
       let cleanup: () => void;

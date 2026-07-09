@@ -25,3 +25,6 @@ criterion = { workspace = true }
 [[bench]]
 name = "pixelmatch_bench"
 harness = false
+
+[lib]
+doctest = false

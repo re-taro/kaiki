@@ -30,9 +30,7 @@ afterEach(() => {
  * Helper: wrap run() so that synchronous throws (e.g. config validation)
  * are converted to rejected promises for use with `rejects.toThrow`.
  */
-async function runAsync(
-  opts: Parameters<typeof run>[0],
-): ReturnType<typeof run> {
+async function runAsync(opts: Parameters<typeof run>[0]): ReturnType<typeof run> {
   return run(opts);
 }
 
@@ -110,11 +108,7 @@ describe('run() pipeline', () => {
   // ── 3. Image diff failures + diff file generation ───────────────────
   it('diff failures produce diff image files', async () => {
     const expectedImages = { 'img.png': RED_PNG() };
-    const { config, workingDir } = setupFixture(
-      tmpDir,
-      { 'img.png': BLUE_PNG() },
-      expectedImages,
-    );
+    const { config, workingDir } = setupFixture(tmpDir, { 'img.png': BLUE_PNG() }, expectedImages);
 
     const kg = mockKeyGenerator('key-1', 'key-2');
     const pub = mockPublisher(expectedImages);

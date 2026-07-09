@@ -8,4 +8,8 @@ publish = false
 workspace = true
 
 [dependencies]
+cargo_metadata = "0.23"
+git-cliff-core = "2"
 reqwest = { workspace = true, features = ["blocking"] }
+serde_json = { workspace = true }
+toml_edit = "0.25"
