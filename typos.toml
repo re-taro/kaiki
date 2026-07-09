@@ -1,0 +1,3 @@
+[default.extend-words]
+# Crate names: include-flate, flate2
+flate = "flate"
