@@ -10,3 +10,9 @@ rules:
   # dtolnay/rust-toolchain and softprops/action-gh-release are intentional choices.
   superfluous-actions:
     disable: true
+  # CODECOV_TOKEN is a low-privilege upload token and the workflow runs on
+  # pull_request, where a deployment environment would be inappropriate.
+  secrets-outside-env:
+    ignore:
+      - codecov.yml
+

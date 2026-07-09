@@ -117,6 +117,7 @@ jobs:
     name: Publish napi
     needs: [check-version, build-napi]
     runs-on: ubuntu-latest
+    environment: npm
     permissions:
       contents: write
       id-token: write

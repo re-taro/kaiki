@@ -37,6 +37,7 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.changed == 'true'
     runs-on: ubuntu-latest
+    environment: npm
     permissions:
       contents: write
       id-token: write
